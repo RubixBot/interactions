@@ -63,8 +63,6 @@ module.exports = class Interactions {
     this.app.use(cors());
 
     this.registerRoutes();
-
-    this.dispatch.commandStore.updateCommandList(); // TODO: don't always do this
     this.timedActions.start();
 
     this.logger.info(`Server listening on port: ${this.config.port}`, { src: 'core' });
