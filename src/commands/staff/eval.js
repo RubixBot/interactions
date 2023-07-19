@@ -10,7 +10,8 @@ module.exports = class extends Command {
       description: 'Evaluate.',
       options: [
         { type: ApplicationCommandOptionType.String, required: true, name: 'string', description: 'eval js code' }
-      ]
+      ],
+      isDeveloper: true
     });
   }
 

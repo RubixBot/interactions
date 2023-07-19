@@ -83,13 +83,13 @@ module.exports = class CommandStore extends Map {
    */
   async updateCommandList() {
     // dev commands
-    /* await this.core.rest.api.applications(config.applicationID)
+    await this.core.rest.api.applications(config.applicationID)
       .guilds(config.devServerID)
       .commands()
       .put([...this.values()]
         .filter(c => c.isDeveloper)
         .map(v => v.toJSON())
-      ); */
+      );
     // normal command
     return await this.core.rest.api.applications(config.applicationID)
       .commands()
