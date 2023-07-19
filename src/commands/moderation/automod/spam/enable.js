@@ -33,7 +33,7 @@ module.exports = class extends Command {
     }
 
     const filters = await rest.api.guilds(guildID, 'auto-moderation').rules.get();
-    const filter = filters.find(f => f.type === AutomodTriggerType.Spam);
+    const filter = filters.find(f => f.trigger_type === AutomodTriggerType.Spam);
     if (filter) {
       return new Command.InteractionResponse()
         .setContent('There is already a spam filter in place, use `/automod spam disable` to remove it.')
