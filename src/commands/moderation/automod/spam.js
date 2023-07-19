@@ -30,16 +30,10 @@ module.exports = class extends Command {
       actions.push({ type: AutomodActionType.BlockMessage });
     }
     if (alert.value === true) {
-      actions.push({ type: AutomodActionType.SendAlert, metadata: { channel_id: channel.channel.id, custom_message: message?.value } });
+      actions.push({ type: AutomodActionType.SendAlert, metadata: { channel_id: channel.channel.id, custom_message: message ? message.value : null } });
     }
 
-    console.log({
-      name: 'Rubix Spam Filter',
-      event_type: AutomodEventType.MessageSend,
-      actions,
-      enabled: true
-    });
-
+    console.log(actions);
     await rest.api.guilds(guildID, 'auto-moderation').rules.post({
       name: 'Rubix Spam Filter',
       event_type: AutomodEventType.MessageSend,
