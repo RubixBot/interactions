@@ -1,5 +1,5 @@
-const { ApplicationCommandOptionType, AutomodEventType, AutomodTriggerType, AutomodActionType } = require('../../../constants/Types');
-const Command = require('../../../framework/Command');
+const { ApplicationCommandOptionType, AutomodEventType, AutomodTriggerType, AutomodActionType } = require('../../../../constants/Types');
+const Command = require('../../../../framework/Command');
 
 module.exports = class extends Command {
 
