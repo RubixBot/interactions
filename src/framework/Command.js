@@ -22,7 +22,7 @@ class Command {
       name: this.name,
       type: this.type,
       description: this.description,
-      options: this.options,
+      options: this.options.map(o => o.toJSON ? o.toJSON() : o),
       choices: this.choices,
       isDeveloper: this.isDeveloper
     };
