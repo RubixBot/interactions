@@ -18,7 +18,7 @@ module.exports = class extends Command {
   }
 
   async run ({ guildID, args: { block, alert, message, channel }, rest }) {
-    if (alert.value === true && !channel.channel) {
+    if (alert.value === true && !channel?.channel) {
       return new Command.InteractionResponse()
         .setContent('You must specify a channel to send the alert to!')
         .setEmoji('cross')
@@ -30,7 +30,7 @@ module.exports = class extends Command {
       actions.push({ type: AutomodActionType.BlockMessage });
     }
     if (alert.value === true) {
-      actions.push({ type: AutomodActionType.SendAlert, metadata: { channel_id: channel.channel.id, custom_message: message.value } });
+      actions.push({ type: AutomodActionType.SendAlert, metadata: { channel_id: channel.channel.id, custom_message: message?.value } });
     }
 
     console.log({
