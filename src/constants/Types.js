@@ -94,7 +94,7 @@ module.exports = {
 
   AutomodTriggerType: {
     Keyword: 1,
-    Spam: 2,
+    Spam: 3,
     KeywordPreset: 4,
     MentionSpam: 5
   },
