@@ -5,7 +5,7 @@ module.exports = class extends Command {
 
   constructor (...args) {
     super(...args, {
-      name: 'spam',
+      name: 'enable',
       description: 'Configure a spam filter to be moderated.',
       options: [
         { type: ApplicationCommandOptionType.Boolean, required: true, name: 'block', description: 'Block the message trying to be sent? You can specify a custom message.' },
@@ -57,7 +57,7 @@ module.exports = class extends Command {
       enabled: true,
 
       /* Audit Log Reason */
-      reason: `Set-up by ${user.globalName}`
+      auditLogReason: `Set-up by ${user.globalName}`
     });
 
     return new Command.InteractionResponse()

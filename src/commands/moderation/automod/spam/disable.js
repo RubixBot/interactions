@@ -29,7 +29,7 @@ module.exports = class extends Command {
     }
 
     await rest.api.guilds(guildID, 'auto-moderation').rules(filter.id).delete({
-      reason: `Removed by ${user.globalName}`
+      auditLogReason: `Removed by ${user.globalName}`
     });
     return new Command.InteractionResponse()
       .setContent('Removed this servers spam filter.')
