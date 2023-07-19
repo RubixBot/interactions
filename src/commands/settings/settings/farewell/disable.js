@@ -6,7 +6,7 @@ module.exports = class extends Command {
     super(...args, {
       name: 'disable',
       description: 'Disable the farewell message.',
-      permissions: ['manageServer']
+      permissions: ['manageGuild']
     });
   }
 

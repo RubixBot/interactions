@@ -6,11 +6,11 @@ module.exports = class extends Command {
     super(...args, {
       name: 'disable',
       description: 'Disable the greeting message.',
-      permissions: ['manageServer']
+      permissions: ['manageGuild']
     });
   }
 
-  async run ({ args, settings }) {
+  async run ({ settings }) {
     settings.remove('greeting');
     await settings.save();
 

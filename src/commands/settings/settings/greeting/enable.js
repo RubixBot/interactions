@@ -11,7 +11,7 @@ module.exports = class extends Command {
         { name: 'channel', description: 'Channel to enable the greeting in.', type: ApplicationCommandOptionType.Channel, channel_types: [ChannelType.Text, ChannelType.News], required: true },
         { name: 'message', description: 'Message to send when a member joins.', type: ApplicationCommandOptionType.String, required: true }
       ],
-      permissions: ['manageServer']
+      permissions: ['manageGuild']
     });
   }
 

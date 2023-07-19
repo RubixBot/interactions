@@ -6,7 +6,7 @@ module.exports = class extends Command {
     super(...args, {
       name: 'view',
       description: 'View the current greeting message.',
-      permissions: ['manageServer']
+      permissions: ['manageGuild']
     });
   }
 
