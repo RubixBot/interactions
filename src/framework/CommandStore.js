@@ -82,6 +82,7 @@ module.exports = class CommandStore extends Map {
    * @returns {Promise<*>}
    */
   async updateCommandList() {
+    console.log([...this.values()].map(v => v.toJSON()));
     // dev commands
     await this.core.rest.api.applications(config.applicationID)
       .guilds(config.devServerID)
