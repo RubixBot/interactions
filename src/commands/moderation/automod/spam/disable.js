@@ -1,4 +1,4 @@
-const Command = require('../../../framework/Command');
+const Command = require('../../../../framework/Command');
 
 module.exports = class extends Command {
 
