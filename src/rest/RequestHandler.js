@@ -1,4 +1,4 @@
-const { API_URL, API_VERSION } = require('../constants/Endpoints');
+const { API_VERSION } = require('../constants/Endpoints');
 const axios = require('axios');
 const HTTPError = require('./HTTPError');
 const DiscordAPIError = require('./DiscordAPIError');
@@ -15,7 +15,7 @@ module.exports = class RESTHandler {
    * @param {string} [options.token]
    */
   constructor (logger, options = {}) {
-    const baseURL = options.apiURL || API_URL;
+    const baseURL = options.apiURL;
     const version = options.apiVersion || API_VERSION;
 
     this.logger = logger;
@@ -53,7 +53,8 @@ module.exports = class RESTHandler {
           validateStatus: null,
           headers: {
             Authorization: `Bot ${this.token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
           },
           baseURL: this.baseURL,
           url: endpoint,
@@ -62,8 +63,14 @@ module.exports = class RESTHandler {
           params: query
         };
 
-        if (data.auditLogReason) {
-          options.headers['X-Audit-Log-Reason'] = encodeURIComponent(data.auditLogReason);
+        if (data && data.auditLogReason) { // Audit log reason sniping
+          let unencodedReason = data.auditLogReason;
+          options.headers['X-Audit-Log-Reason'] = encodeURIComponent(unencodedReason);
+          if((method !== 'PUT' || !endpoint.includes('/bans')) && (method !== 'POST' || !endpoint.includes('/prune'))) {
+            delete data.auditLogReason;
+          } else {
+            data.auditLogReason = unencodedReason;
+          }
         }
 
         this.logger.debug(`${method.toUpperCase()} ${endpoint}`, { src: 'requestHandler' });

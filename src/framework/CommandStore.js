@@ -26,7 +26,7 @@ module.exports = class CommandStore extends Map {
 
   registerCategory (category) {
     const files = fs.readdirSync(path.join('src', 'commands', category))
-      .filter(file => !file.startsWith('_'));
+      .filter(file => !file.startsWith('_') && !file.endsWith('.json'));
 
     for (let file of files) {
       const commandName = file.split('.')[0];
@@ -43,14 +43,13 @@ module.exports = class CommandStore extends Map {
   }
 
   registerSubCommands (command, dir) {
-    console.log(dir);
     const subCommandGroups = fs.readdirSync(dir).filter(c => fs.statSync(path.join(dir, c)).isDirectory());
     for (let group of subCommandGroups) {
       this.registerSubCommandGroup(command, path.join(dir, group));
     }
 
     const commands = fs.readdirSync(dir)
-      .filter(filename => filename.endsWith('.js') && filename !== 'index.js');
+      .filter(filename => !filename.startsWith('_') && filename.endsWith('.js') && filename !== 'index.js');
 
     for (let file of commands) {
       if (file === 'index.js') {

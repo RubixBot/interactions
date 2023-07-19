@@ -12,10 +12,14 @@ const nacl = require('tweetnacl');
 const bodyParser = require('body-parser');
 const Redis = require('ioredis');
 const sentry = require('@sentry/node');
+const StatsD = require('hot-shots');
 
 const Dispatch = require('./framework/Dispatch');
 const RequestHandler = require('./rest/RequestHandler');
 const DatabaseHandler = require('./framework/Database');
+const TimedActions = require('./framework/TimedActions');
+
+const User = require('./structures/discord/User');
 
 module.exports = class Interactions {
 
@@ -34,21 +38,24 @@ module.exports = class Interactions {
     this.id = id;
     this.app = app;
     this.startedAt = Date.now();
+    this.metrics = new StatsD(config.metrics);
 
     this.redis = new Redis(config.redis);
 
     this.dispatch = new Dispatch(this, logger);
-    this.rest = new RequestHandler(logger, { token: config.token });
+    this.rest = new RequestHandler(logger, { token: config.token, apiURL: config.proxyURL });
     this.database = new DatabaseHandler(config.db);
+    this.timedActions = new TimedActions(this);
 
     this.start();
   }
 
   async start () {
     this.logger.info(`Assigned interactions id ${this.id}, starting!`, { src: 'core' });
+    await this.database.connect();
 
     // Get current user
-    this.user = await this.rest.api.users(this.config.applicationID).get();
+    this.user = new User(await this.rest.api.users(this.config.applicationID).get());
 
     // Initialise the server
     this.app.listen(this.config.port);
@@ -57,9 +64,8 @@ module.exports = class Interactions {
 
     this.registerRoutes();
 
-    await this.database.connect();
-
     this.dispatch.commandStore.updateCommandList(); // TODO: don't always do this
+    this.timedActions.start();
 
     this.logger.info(`Server listening on port: ${this.config.port}`, { src: 'core' });
     this.gatewayClient.sendReady();

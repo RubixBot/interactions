@@ -2,13 +2,14 @@
 
 module.exports = class Context {
 
-  constructor (core, appCommand, interaction, settings) {
+  constructor (core, appCommand, interaction, settings, userSettings) {
     this.core = core;
     this.appCommand = appCommand;
     this.interaction = interaction;
 
     this.args = {};
     this.settings = settings;
+    this.userSettings = userSettings;
   }
 
   get id () {
@@ -17,6 +18,10 @@ module.exports = class Context {
 
   get token () {
     return this.interaction.token;
+  }
+
+  get appPermissions () {
+    return this.interaction.appPermissions;
   }
 
   get guildID () {

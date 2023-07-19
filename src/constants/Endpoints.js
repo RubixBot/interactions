@@ -1,4 +1,3 @@
-const API_URL = 'https://discord.com/api';
 const CDN_URL = 'https://cdn.discordapp.com';
 const API_VERSION = 10;
 
@@ -7,7 +6,6 @@ const avatarURLSize = (userID, hash, size) => `${CDN_URL}/avatars/${userID}/${ha
 const defaultAvatarURL = (discriminator) => `${CDN_URL}/embed/avatars/${discriminator}.png`;
 
 module.exports = {
-  API_URL,
   CDN_URL,
   API_VERSION,
 

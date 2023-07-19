@@ -79,12 +79,16 @@ module.exports = class Dispatch {
         .addButton({ custom_id: 'disabled', label: 'Custom Command', style: ComponentButtonStyle.Grey, disabled: true });
     }
 
+    const startTimestamp = Date.now();
+    const latency = Date.now() - interaction.createdTimestamp;
+
     const topLevelCommand = this.commandStore.get(interaction.name);
     const applicationCommand = this.getSubCommand(interaction, topLevelCommand);
     if (!applicationCommand) return null;
 
     const settings = await this.core.database.getGuildSettings(interaction.guildID);
-    const context = new Context(this.core, applicationCommand, interaction, settings);
+    const userSettings = await this.core.database.getUserSettings(interaction.user.id);
+    const context = new Context(this.core, applicationCommand, interaction, settings, userSettings);
 
     const args = this.findNonSubCommandOption(interaction.options);
     if (args) {
@@ -112,34 +116,72 @@ module.exports = class Dispatch {
         .setColour('red');
     }
 
-    // TODO: COMMAND METRICS
-
     // Run the command
-    return await applicationCommand.run(context) ||
-      new InteractionEmbedResponse()
-        .setDescription('Missing response\nSpeak to a developer if this continues')
+    let resp;
+    try {
+      resp = await applicationCommand.run(context);
+    } catch (e) {
+      this.core.metrics.histogram('command.error', { command: applicationCommand.name });
+      resp = new InteractionEmbedResponse()
+        .setDescription('An error occurred\nSpeak to a developer if this continues')
         .setColour('red');
+    }
+
+    // Command Metrics
+    this.core.metrics.histogram('command.duration', Date.now() - startTimestamp, { command: applicationCommand.name });
+    this.core.metrics.histogram('command.latency', latency, { command: applicationCommand.name });
+    this.core.metrics.increment('command.run', { command: applicationCommand.name });
+
+    return resp;
   }
 
   async handleComponent (interaction) {
     // find in redis
-    let data = await this.core.redis.get(`interactions:awaits:${interaction.customID}`);
+    let data = await this.core.redis.get(`components:${interaction.customID}:meta`);
     if (!data) {
       return new InteractionResponse()
         .setContent('Interaction timed out')
-        .setEmoji('xmark')
+        .setEmoji('cross')
         .setEphemeral();
     }
     data = JSON.parse(data);
     if (data.removeOnResponse) {
-      await this.core.redis.del(`interactions:awaits:${interaction.customID}`);
+      await this.core.redis.del(`components:${interaction.customID}:metadata`);
     }
 
-    const topLevelCommand = this.commandStore.get(data.command);
-    const applicationCommand = this.getSubCommand(interaction, topLevelCommand);
-    if (!applicationCommand) return null;
+    switch (data.type) {
+      case 'giveaway': {
+        const timedActions = await this.core.database.getAllTimedActions();
+        const timedAction = timedActions.filter(c => c.type === 'giveaway' && c.id === data.giveawayID)[0];
+        if (!timedAction) {
+          return new InteractionResponse()
+            .setContent('Error finding timed action, the giveaway may be ending.')
+            .setEmoji('cross')
+            .setEphemeral();
+        }
 
-    return applicationCommand.handleComponent(data, interaction);
+        if (timedAction.entrees.includes(interaction.member.id)) {
+          timedAction.entrees = timedAction.entrees.filter(e => e !== interaction.member.id);
+
+          await this.core.database.editTimedAction(timedAction._id, timedAction);
+          return new InteractionResponse()
+            .setContent('You have been removed from this giveaway.')
+            .setEmoji('cross')
+            .setEphemeral();
+        } else {
+          timedAction.entrees.push(interaction.member.id);
+
+          await this.core.database.editTimedAction(timedAction._id, timedAction);
+          return new InteractionResponse()
+            .setContent('You have been entered to this giveaway.')
+            .setEmoji('check')
+            .setEphemeral();
+        }
+      }
+    }
+
+    return new InteractionResponse()
+      .setContent('Unknown action');
   }
 
   async handleAutocomplete (data) {

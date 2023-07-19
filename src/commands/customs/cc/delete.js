@@ -18,7 +18,7 @@ module.exports = class extends Command {
     const custom = await db.getCustomCommand(guildID, args.name.value);
     if (!custom) {
       return new Command.InteractionResponse()
-        .setContent('Custom command does not exists!')
+        .setContent('Custom command does not exist!')
         .setEmoji('cross')
         .setEphemeral();
     }

@@ -15,7 +15,7 @@ module.exports = class Database {
   // Guild Functions
   async getGuildSettings (id) {
     const settings = await this.db.collection('guilds').findOne({ _id: id });
-    return new GuildSettings(this, id, { ...settings, _id: undefined });
+    return new GuildSettings(this, id, settings || {});
   }
 
   async updateGuildSettings (id, data) {
@@ -32,7 +32,7 @@ module.exports = class Database {
   // User Functions
   async getUserSettings (id) {
     const settings = await this.db.collection('users').findOne({ _id: id });
-    return settings || {};
+    return new UserSettings(this, id, settings | {});
   }
 
   async updateUserSettings (id, data) {
@@ -46,8 +46,9 @@ module.exports = class Database {
   }
 
   // Timed Actions
-  getDueTimedActions () {
-    return this.db.collection('timedActions').find().max({ expires: Date.now() }).toArray();
+  async getDueTimedActions() {
+    const actions = await this.getAllTimedActions();
+    return actions.filter(action => action.expires <= Date.now());
   }
 
   getAllTimedActions () {
@@ -64,6 +65,10 @@ module.exports = class Database {
 
   deleteTimedAction (id) {
     return this.db.collection('timedActions').findOneAndDelete({ _id: id });
+  }
+
+  editTimedAction(_id, data) {
+    return this.db.collection('timedActions').updateOne({ _id }, { $set: this._removeID(data) }, { upsert: true });
   }
 
 
@@ -125,6 +130,15 @@ module.exports = class Database {
     return this.db.collection('modlog').find({ targetID, guildID, action: 'warn' }).toArray();
   }
 
+
+  _removeID (data) {
+    let returning = {};
+    Object.keys(data).forEach(key => {
+      if (key !== '_id') returning[key] = data[key];
+    });
+    return returning;
+  }
+
 };
 
 class GuildSettings {
@@ -153,6 +167,36 @@ class GuildSettings {
 
   save () {
     return this.db.updateGuildSettings(this.guildID, this.data);
+  }
+
+}
+
+class UserSettings {
+
+  constructor (db, guildID, data) {
+    this.db = db;
+    this.guildID = guildID;
+    this.data = {};
+
+    for (let key in data) {
+      if (key !== '_id') this.data[key] = data[key];
+    }
+  }
+
+  set (key, value) {
+    this.data[key] = value;
+  }
+
+  remove (key) {
+    this.data[key] = undefined;
+  }
+
+  get (key) {
+    return this.data[key];
+  }
+
+  save () {
+    return this.db.updateUserSettings(this.guildID, this.data);
   }
 
 }

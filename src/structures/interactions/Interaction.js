@@ -1,5 +1,6 @@
 const Member = require('../discord/Member');
 const User = require('../discord/User');
+const Permission = require('../discord/Permission');
 
 class Interaction {
 
@@ -11,6 +12,7 @@ class Interaction {
     this.channelID = data.channel_id;
     this.token = data.token;
     this.version = data.version;
+    this.appPermissions = new Permission(data.app_permissions);
 
     if (data.member) {
       data.member.id = data.member.user.id;
@@ -19,6 +21,10 @@ class Interaction {
     } else {
       this.user = new User(data.user);
     }
+  }
+
+  get createdTimestamp () {
+    return Math.floor(this.id / 4194304) + 1420070400000;
   }
 
 }
