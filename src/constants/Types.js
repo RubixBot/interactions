@@ -86,6 +86,23 @@ module.exports = {
     Stage: 13
   },
 
-  SubCommandTypes: [1, 2]
+  SubCommandTypes: [1, 2],
+
+  AutomodEventType: {
+    MessageSend: 1
+  },
+
+  AutomodTriggerType: {
+    Keyword: 1,
+    Spam: 2,
+    KeywordPreset: 4,
+    MentionSpam: 5
+  },
+
+  AutomodActionType: {
+    BlockMessage: 1,
+    SendAlert: 2,
+    Timeout: 3
+  }
 
 };
