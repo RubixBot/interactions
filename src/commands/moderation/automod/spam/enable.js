@@ -17,10 +17,26 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ guildID, args: { block, alert, message, channel }, rest }) {
+  async run ({ user, guildID, args: { block, alert, message, channel }, rest, appPermissions }) {
+    if (!appPermissions.has('manageGuild')) {
+      return new Command.InteractionResponse()
+        .setContent('Rubix cannot manage auto moderation rules. I require the **Manage Server** permission.')
+        .setEmoji('cross')
+        .setEphemeral();
+    }
+
     if (alert.value === true && !channel?.channel) {
       return new Command.InteractionResponse()
         .setContent('You must specify a channel to send the alert to!')
+        .setEmoji('cross')
+        .setEphemeral();
+    }
+
+    const filters = await rest.api.guilds(guildID, 'auto-moderation').rules.get();
+    const filter = filters.find(f => f.type === AutomodTriggerType.Spam);
+    if (filter) {
+      return new Command.InteractionResponse()
+        .setContent('There is already a spam filter in place, use `/automod spam disable` to remove it.')
         .setEmoji('cross')
         .setEphemeral();
     }
@@ -33,13 +49,15 @@ module.exports = class extends Command {
       actions.push({ type: AutomodActionType.SendAlert, metadata: { channel_id: channel.channel.id } });
     }
 
-    console.log(actions);
     await rest.api.guilds(guildID, 'auto-moderation').rules.post({
       name: 'Rubix Spam Filter',
       event_type: AutomodEventType.MessageSend,
       trigger_type: AutomodTriggerType.Spam,
       actions,
-      enabled: true
+      enabled: true,
+
+      /* Audit Log Reason */
+      reason: `Set-up by ${user.globalName}`
     });
 
     return new Command.InteractionResponse()
