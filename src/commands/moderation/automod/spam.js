@@ -27,10 +27,10 @@ module.exports = class extends Command {
 
     let actions = [];
     if (block.value === true) {
-      actions.push({ type: AutomodActionType.BlockMessage });
+      actions.push({ type: AutomodActionType.BlockMessage, metadata: { custom_message: message?.value } });
     }
     if (alert.value === true) {
-      actions.push({ type: AutomodActionType.SendAlert, metadata: { channel_id: channel.channel.id, custom_message: message ? message.value : null } });
+      actions.push({ type: AutomodActionType.SendAlert, metadata: { channel_id: channel.channel.id } });
     }
 
     console.log(actions);
