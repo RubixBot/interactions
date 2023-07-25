@@ -103,6 +103,12 @@ module.exports = {
     BlockMessage: 1,
     SendAlert: 2,
     Timeout: 3
+  },
+
+  AutomodKeywordType: {
+    Profanity: 1,
+    SexualContent: 2,
+    Slurs: 3
   }
 
 };

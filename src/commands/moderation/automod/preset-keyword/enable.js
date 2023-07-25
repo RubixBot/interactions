@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType, AutomodEventType, AutomodTriggerType, AutomodActionType } = require('../../../../constants/Types');
+const { ApplicationCommandOptionType, AutomodEventType, AutomodTriggerType, AutomodActionType, AutomodKeywordType } = require('../../../../constants/Types');
 const Command = require('../../../../framework/Command');
 const { resolveEmoji } = require('../../../../constants/Emojis');
 
@@ -7,22 +7,22 @@ module.exports = class extends Command {
   constructor (...args) {
     super(...args, {
       name: 'enable',
-      description: 'Configure a mention spam filter to be moderated.',
+      description: 'Configure a preset keyword filter to moderate members who say words on a set list.',
       options: [
-        { type: ApplicationCommandOptionType.Integer, required: true, name: 'limit', description: 'Number of unique role and user mentions allowed per message (max 50)' },
-        { type: ApplicationCommandOptionType.Boolean, required: true, name: 'raid_protection', description: 'Whether to automatically detect mention raids.' },
         { type: ApplicationCommandOptionType.Boolean, required: true, name: 'block', description: 'Block the message trying to be sent? You can specify a custom message.' },
         { type: ApplicationCommandOptionType.Boolean, required: true, name: 'alert', description: 'Send an alert of the message content? Specify a channel for this.' },
-        { type: ApplicationCommandOptionType.Boolean, required: true, name: 'timeout', description: 'Whether to time out the member. Set a duration for this.' },
+        { type: ApplicationCommandOptionType.Boolean, required: true, name: 'profanity', description: 'Block out profanity words (swearing/cursing)' },
+        { type: ApplicationCommandOptionType.Boolean, required: true, name: 'sexual_content', description: 'Block out sexual content' },
+        { type: ApplicationCommandOptionType.Boolean, required: true, name: 'slurs', description: 'Block out personal insults (hate speech)' },
+        { type: ApplicationCommandOptionType.String, required: false, name: 'allowed_words', description: 'List of allowed words seperated by a comma. (,)' },
         { type: ApplicationCommandOptionType.String, required: false, name: 'message', description: 'Message to send to a user when they break the filter.' },
-        { type: ApplicationCommandOptionType.Channel, required: false, name: 'channel', description: 'Channel to send alert to (ignore if send alert is off).' },
-        { type: ApplicationCommandOptionType.String, required: false, name: 'duration', description: 'Duration to timeout the user for (if timeout is true).' }
+        { type: ApplicationCommandOptionType.Channel, required: false, name: 'channel', description: 'Channel to send alert to (ignore if send alert is off).' }
       ],
       permissions: ['manageGuild']
     });
   }
 
-  async run ({ user, guildID, args: { limit, raid_protection, block, alert, timeout, message, channel, duration }, rest, appPermissions }) {
+  async run ({ user, guildID, args: { block, alert, profanity, sexual_content, slurs, allowed_words, message, channel }, rest, appPermissions }) {
     if (!appPermissions.has('manageGuild')) {
       return new Command.InteractionResponse()
         .setContent('Rubix cannot manage auto moderation rules. I require the **Manage Server** permission.')
@@ -30,47 +30,35 @@ module.exports = class extends Command {
         .setEphemeral();
     }
 
-    if (limit.value > 50) {
-      return new Command.InteractionResponse()
-        .setContent('Limit is a maximum of 50.')
-        .setEmoji('cross')
-        .setEphemeral();
-    }
-
-    if (timeout.value === true && !duration?.value) {
-      return new Command.InteractionResponse()
-        .setContent('You need to set a duration value if you want to timeout a user.')
-        .setEmoji('cross')
-        .setEphemeral();
-    }
-
     const filters = await rest.api.guilds(guildID, 'auto-moderation').rules.get();
-    const filter = filters.find(f => f.trigger_type === AutomodTriggerType.MentionSpam);
+    const filter = filters.find(f => f.trigger_type === AutomodTriggerType.KeywordPreset);
     if (filter) {
       return new Command.InteractionResponse()
-        .setContent('There is already a mention spam filter in place, use `/automod mention-spam disable` to remove it.')
+        .setContent('There is already a preset keyword filter in place, use `/automod preset-keyword disable` to remove it.')
         .setEmoji('cross')
         .setEphemeral();
     }
 
-    if (duration) {
-      duration.value = this.parseDuration(duration.value);
-      if (!duration.value) {
-        return new Command.InteractionResponse()
-          .setContent('Cannot parse duration.')
-          .setEmoji('cross')
-          .setEphemeral();
-      } else if (duration.value / 1000 < 1 || duration.value / 1000 > 2419200) {
-        return new Command.InteractionResponse()
-          .setContent('Duration of timeout can only be between 1 minute and 4 weeks.')
-          .setEmoji('cross')
-          .setEphemeral();
-      }
+    if (allowed_words?.value) {
+      allowed_words.value = allowed_words.value.split(',');
     }
 
+    let presets = [];
+    let msg = [];
+    if (profanity.value) {
+      presets.push(AutomodKeywordType.Profanity);
+      msg.push('look for messages containing **profanity**');
+    }
+    if (sexual_content.value) {
+      presets.push(AutomodKeywordType.SexualContent);
+      msg.push('look for messages containing **sexual content**');
+    }
+    if (slurs.value) {
+      presets.push(AutomodKeywordType.Slurs);
+      msg.push('look for messages containing **slurs/hate speech**');
+    }
 
     let actions = [];
-    let msg = [];
     if (block.value === true) {
       actions.push({ type: AutomodActionType.BlockMessage, metadata: { custom_message: message?.value } });
       msg.push(`**block** the message${message?.value ? ` with the message **${message.value}**` : ''}`);
@@ -79,28 +67,24 @@ module.exports = class extends Command {
       actions.push({ type: AutomodActionType.SendAlert, metadata: { channel_id: channel.channel.id } });
       msg.push(`send an alert to **#${channel.channel.name}**`);
     }
-    if (timeout.value === true) {
-      actions.push({ type: AutomodActionType.Timeout, metadata: { duration_seconds: duration.value / 1000 } });
-      msg.push('**timeout** the member');
-    }
 
-    await rest.api.guilds(guildID, 'auto-moderation').rules.post({
-      name: 'Rubix Mention Spam Filter',
+    console.log(await rest.api.guilds(guildID, 'auto-moderation').rules.post({
+      name: 'Rubix Preset Keyword Filter',
       event_type: AutomodEventType.MessageSend,
-      trigger_type: AutomodTriggerType.MentionSpam,
+      trigger_type: AutomodTriggerType.KeywordPreset,
       trigger_metadata: {
-        mention_total_limit: limit.value,
-        mention_raid_protection_enabled: raid_protection.value
+        presets,
+        allow_list: allowed_words.value
       },
       actions,
       enabled: true,
 
       auditLogReason: `Set-up by ${user.globalName}`
-    });
+    }));
 
     return new Command.InteractionEmbedResponse()
       .setColour('blue')
-      .setDescription(`### ${resolveEmoji('check')} Mention spam filter now enabled. I will\n- ${msg.join('\n- ')}.`);
+      .setDescription(`### ${resolveEmoji('check')} Preset keyword filter now enabled. I will\n- ${msg.join('\n- ')}.`);
   }
 
   parseDuration (input) {
