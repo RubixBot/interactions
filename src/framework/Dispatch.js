@@ -74,8 +74,20 @@ module.exports = class Dispatch {
 
     const customCommand = await this.core.database.getCustomCommand(interaction.guildID, interaction.name);
     if (customCommand) {
+      let parsedMessage = customCommand.message.replace(/{user}/g, interaction.user.globalName)
+        .replace(/{serverid}/g, interaction.guildID);
+
+      const rolesToAdd = parsedMessage.match(/{addrole:(\d+)}/g);
+      rolesToAdd.forEach((role) => {
+        let roleID = role.replace('{addrole:', '').replace('}', '');
+        this.core.rest.api.guilds(interaction.guildID).members(interaction.user.id).roles(roleID).put({
+          auditLogReason: `Custom Command: ${interaction.name}`
+        }).catch();
+        parsedMessage = parsedMessage.replace(role, '');
+      });
+
       return new InteractionComponentResponse()
-        .setContent(customCommand.message)
+        .setContent(parsedMessage)
         .addButton({ custom_id: 'disabled', label: 'Custom Command', style: ComponentButtonStyle.Grey, disabled: true });
     }
 

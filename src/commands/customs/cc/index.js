@@ -11,8 +11,4 @@ module.exports = class extends Command {
     });
   }
 
-  async run () {
-    // TODO: do it
-  }
-
 };
