@@ -24,7 +24,7 @@ module.exports = class extends Command {
     }
 
     return new Command.InteractionResponse()
-      .setContent(`\`\`\`js\n${inspect(resp, 2).substring(0, 1900)}`);
+      .setContent(`\`\`\`js\n${inspect(resp, 2).substring(0, 1900)}\n\`\`\``);
   }
 
 };
