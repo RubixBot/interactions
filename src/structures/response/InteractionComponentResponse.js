@@ -22,6 +22,21 @@ class InteractionComponentResponse extends InteractionResponse {
   }
 
   /**
+   * Add multiple action rows
+   * @returns {InteractionResponse}
+   */
+  bulkAddActionRow (rows) {
+    rows.forEach(row => {
+      this.components.push({
+        type: ComponentType.ActionRow,
+        components: row
+      });
+    });
+
+    return this;
+  }
+
+  /**
    * Add a select menu.
    * @param {SelectMenu} selectMenu Options for select menu
    * @returns {InteractionResponse}

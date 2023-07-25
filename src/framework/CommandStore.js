@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const config = require('../../config');
 const Types = require('../constants/Types');
+
 module.exports = class CommandStore extends Map {
 
   constructor (core) {
@@ -82,17 +82,16 @@ module.exports = class CommandStore extends Map {
    * @returns {Promise<*>}
    */
   async updateCommandList() {
-    console.log(require('util').inspect([...this.values()].map(v => v.toJSON()), 0, Infinity));
     // dev commands
-    await this.core.rest.api.applications(config.applicationID)
-      .guilds(config.devServerID)
+    await this.core.rest.api.applications(this.core.config.applicationID)
+      .guilds(this.core.config.devServerID)
       .commands()
       .put([...this.values()]
         .filter(c => c.isDeveloper)
         .map(v => v.toJSON())
       );
     // normal command
-    return await this.core.rest.api.applications(config.applicationID)
+    return await this.core.rest.api.applications(this.core.config.applicationID)
       .commands()
       .put([...this.values()]
         .filter(c => !c.isDeveloper)

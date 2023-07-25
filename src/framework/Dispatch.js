@@ -121,16 +121,20 @@ module.exports = class Dispatch {
     try {
       resp = await applicationCommand.run(context);
     } catch (e) {
+      captureException(e);
+      this.core.logger.error(e, { src: 'dispatch/handleCommand' });
       this.core.metrics.histogram('command.error', { command: applicationCommand.name });
       resp = new InteractionEmbedResponse()
-        .setDescription('An error occurred\nSpeak to a developer if this continues')
+        .setDescription('Something unexpected went wrong\nDevelopers have been made aware, try again later')
         .setColour('red');
     }
 
     // Command Metrics
-    this.core.metrics.histogram('command.duration', Date.now() - startTimestamp, { command: applicationCommand.name });
-    this.core.metrics.histogram('command.latency', latency, { command: applicationCommand.name });
-    this.core.metrics.increment('command.run', { command: applicationCommand.name });
+    if (!applicationCommand.isDeveloper) {
+      this.core.metrics.histogram('command.duration', Date.now() - startTimestamp, { command: applicationCommand.name });
+      this.core.metrics.histogram('command.latency', latency, { command: applicationCommand.name });
+      this.core.metrics.increment('command.run', { command: applicationCommand.name });
+    }
 
     return resp;
   }
@@ -140,7 +144,7 @@ module.exports = class Dispatch {
     let data = await this.core.redis.get(`components:${interaction.customID}:meta`);
     if (!data) {
       return new InteractionResponse()
-        .setContent('Interaction timed out')
+        .setContent('Interaction time-out')
         .setEmoji('cross')
         .setEphemeral();
     }
