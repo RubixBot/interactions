@@ -123,7 +123,7 @@ class Base {
     const settings = await this.core.database.getGuildSettings(this.guildID);
     if (settings.get('modlog_channel')) {
       const embed = await this.buildEmbed(data);
-      await this.core.rest.api.channels(settings.get('modlog_channel')).messages(this.messageID).patch({ embeds: [embed] }).then(console.log).catch(console.error);
+      await this.core.rest.api.channels(settings.get('modlog_channel')).messages(this.messageID).patch({ embeds: [embed] });
     }
   }
 }
