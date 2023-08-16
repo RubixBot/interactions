@@ -4,7 +4,7 @@ const { resolveEmoji } = require('../../constants/Emojis');
 
 class Base {
 
-  constructor (core, data, action) {
+  constructor(core, data, action) {
     this.core = core;
     this.guildID = data.guildID;
     this.channelID = data.channelID;
@@ -17,16 +17,16 @@ class Base {
     this.action = action;
   }
 
-  async createMessage (guildID, embed) {
+  async createMessage(guildID, embed) {
     const settings = await this.core.database.getGuildSettings(guildID);
     if (!settings.get('modlog_channel')) return null;
 
     return this.core.rest.api.channels(settings.get('modlog_channel')).messages.post({ embeds: [embed] })
       .then(message => message.id)
-      .catch((err) => {}); // eslint-disable-line handle-callback-err, no-empty-function
+      .catch((err) => { }); // eslint-disable-line handle-callback-err, no-empty-function
   }
 
-  async buildEmbed (data) {
+  async buildEmbed(data) {
     let embed = {
       description: '',
       footer: { text: `Case #${data.caseID}` },
@@ -55,7 +55,7 @@ class Base {
     return embed;
   }
 
-  parseDuration () {
+  parseDuration() {
     return Object.entries({
       months: Math.floor(this.time / 2592000000),
       weeks: Math.floor(this.time % 2592000000 / 604800000),
@@ -64,12 +64,12 @@ class Base {
       minutes: Math.floor(this.time % 2592000000 % 604800000 % 86400000 % 3600000 / 60000),
       seconds: Math.floor(this.time % 2592000000 % 604800000 % 86400000 % 3600000 % 60000 / 1000)
     }).reduce((a, [key, value]) => {
-      if(!value) return a;
+      if (!value) return a;
       else return `${a}${value}${key === 'months' ? 'M' : key.charAt(0)}`;
     }, '');
   }
 
-  async execute () {
+  async execute() {
     let cases = await this.core.database.getGuildCases(this.guildID);
     let caseID = (cases[cases.length - 1] ? cases[cases.length - 1].caseID : 0) + 1;
     this.caseID = caseID;
@@ -92,54 +92,38 @@ class Base {
     return `${resolveEmoji('check')} <@${this.targetID}> has been ${this.info.long} \`[Case ${caseID}]\`.\n${this.reason ? `**Reason:** ${this.reason}` : ''}`;
   }
 
-  static async getCase (core, guildID, caseID) {
+  static async getCase(core, guildID, caseID) {
     const db = await core.database.getCase(guildID, caseID);
     if (!db) return null;
 
-    const Warn = require('./Warn');
     const Kick = require('./Kick');
-    const VoiceKick = require('./VoiceKick');
     const Ban = require('./Ban');
-    const Softban = require('./Softban');
-    const TempBan = require('./TempBan');
     const Unban = require('./Unban');
-    const Mute = require('./Mute');
-    const Unmute = require('./Unmute');
+    const Timeout = require('./Timeout');
 
     switch (db.action) {
-      case 'warn':
-        return new Warn(core, db);
       case 'kick':
         return new Kick(core, db);
-      case 'voice-kick':
-        return new VoiceKick(core, db);
       case 'ban':
         return new Ban(core, db);
-      case 'soft-ban':
-        return new Softban(core, db);
-      case 'temp-ban':
-        return new TempBan(core, db);
       case 'unban':
         return new Unban(core, db);
-      case 'mute':
-        return new Mute(core, db);
-      case 'unmute':
-        return new Unmute(core, db);
+      case 'timeout':
+        return new Timeout(core, db);
       default:
         return null;
     }
   }
 
-  async updateCase (newData) {
+  async updateCase(newData) {
     let data = await this.core.database.getCase(this.guildID, this.caseID);
     data = Object.assign(data, newData);
     await this.core.database.updateCase(this.guildID, this.caseID, data);
 
     const settings = await this.core.database.getGuildSettings(this.guildID);
     if (settings.get('modlog_channel')) {
-      await this.core.rest.api.channels(settings.get('modlog_channel')).messages(this.message_id).patch({
-        embed: await this.buildEmbed(data)
-      });
+      const embed = await this.buildEmbed(data);
+      await this.core.rest.api.channels(settings.get('modlog_channel')).messages(this.messageID).patch({ embeds: [embed] }).then(console.log).catch(console.error);
     }
   }
 }

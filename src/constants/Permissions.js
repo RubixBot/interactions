@@ -33,6 +33,8 @@ module.exports = {
   useSlashCommands: BigInt(1) << BigInt(31),
   voiceRequestToSpeak: BigInt(1) << BigInt(32),
 
+  moderateMembers: BigInt(1) << BigInt(40),
+
   manageThreads: BigInt(1) << BigInt(34),
   usePublicThreads: BigInt(1) << BigInt(35),
   usePrivateThreads: BigInt(1) << BigInt(36)
@@ -73,6 +75,8 @@ module.exports.PermissionFlags = {
   useSlashCommands: 'Use slash commands',
 
   voiceRequestToSpeak: 'Request to speak',
+
+  moderateMembers: 'Moderate members',
 
   manageThreads: 'Manage threads',
   usePublicThreads: 'Use public threads',
