@@ -5,14 +5,14 @@ const moment = require('moment');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'serverinfo',
       description: 'View information about the server.'
     });
   }
 
-  async run ({ guildID, rest }) {
+  async run({ guildID, rest, response }) {
     let [guild, channels] = await Promise.all([
       rest.api.guilds(guildID).get(null, { with_counts: true }),
       rest.api.guilds(guildID).channels.get()
@@ -20,7 +20,7 @@ module.exports = class extends Command {
     const owner = new User(await rest.api.users(guild.owner_id).get());
     const created = Math.floor(guildID / 4194304) + 1420070400000;
 
-    const resp = new Command.InteractionEmbedResponse()
+    const resp = response
       .setColour('blue')
       .setTitle(guild.name)
       .addField('General', stripIndents`**Owner:** ${owner.globalName}

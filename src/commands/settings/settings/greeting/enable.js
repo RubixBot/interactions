@@ -3,7 +3,7 @@ const Command = require('../../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'enable',
       description: 'Setup a greeting message for when members join your server.',
@@ -15,7 +15,7 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ args, db, guildID, settings }) {
+  async run({ args, response, settings }) {
     const channel = args.channel.channel;
     const message = args.message.value;
 
@@ -25,9 +25,9 @@ module.exports = class extends Command {
     });
     await settings.save();
 
-    return new Command.InteractionResponse()
+    return response
       .setContent('Updated the greeting message.')
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
 };

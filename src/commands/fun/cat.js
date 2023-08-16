@@ -10,9 +10,9 @@ module.exports = class extends Command {
     });
   }
 
-  async run () {
+  async run ({ response }) {
     const { body: [url] } = await superagent.get('http://shibe.online/api/cats?count=1');
-    return new Command.InteractionEmbedResponse()
+    return response
       .setColour('blue')
       .setImage(url)
       .setFooter('Powered by shibe.online');

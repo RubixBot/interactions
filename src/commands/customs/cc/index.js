@@ -5,7 +5,7 @@ module.exports = class extends Command {
   constructor (...args) {
     super(...args, {
       name: 'cc',
-      description: 'Custom command management.',
+      description: 'Custom Command Management',
       options: [],
       permissions: ['manageGuild']
     });

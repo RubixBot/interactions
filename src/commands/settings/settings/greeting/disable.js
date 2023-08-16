@@ -2,7 +2,7 @@ const Command = require('../../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'disable',
       description: 'Disable the greeting message.',
@@ -10,13 +10,13 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ settings }) {
+  async run({ settings, response }) {
     settings.remove('greeting');
     await settings.save();
 
-    return new Command.InteractionResponse()
+    return response
       .setContent('Disabled the greeting message.')
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
 };

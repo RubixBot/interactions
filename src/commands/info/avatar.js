@@ -3,7 +3,7 @@ const Command = require('../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'avatar',
       description: 'View your own or another members avatar.',
@@ -11,10 +11,10 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ args, user }) {
+  async run({ args, user, response }) {
     const member = args.member?.user || user;
 
-    return new Command.InteractionEmbedResponse()
+    return response
       .setColour('blue')
       .setTitle(member.globalName)
       .setImage(member.customAvatarURL(1024));

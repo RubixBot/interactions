@@ -4,7 +4,7 @@ const { resolveEmoji } = require('../../../../constants/Emojis');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'enable',
       description: 'Configure a mention spam filter to be moderated.',
@@ -22,48 +22,48 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ user, guildID, args: { limit, raid_protection, block, alert, timeout, message, channel, duration }, rest, appPermissions }) {
+  async run({ user, guildID, args: { limit, raid_protection, block, alert, timeout, message, channel, duration }, rest, appPermissions, response }) {
     if (!appPermissions.has('manageGuild')) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Rubix cannot manage auto moderation rules. I require the **Manage Server** permission.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
     if (limit.value > 50) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Limit is a maximum of 50.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
     if (timeout.value === true && !duration?.value) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('You need to set a duration value if you want to timeout a user.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
     const filters = await rest.api.guilds(guildID, 'auto-moderation').rules.get();
     const filter = filters.find(f => f.trigger_type === AutomodTriggerType.MentionSpam);
     if (filter) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('There is already a mention spam filter in place, use `/automod mention-spam disable` to remove it.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
     if (duration) {
       duration.value = this.parseDuration(duration.value);
       if (!duration.value) {
-        return new Command.InteractionResponse()
+        return response
           .setContent('Cannot parse duration.')
-          .setEmoji('cross')
+          .setSuccess(false)
           .setEphemeral();
       } else if (duration.value / 1000 < 1 || duration.value / 1000 > 2419200) {
-        return new Command.InteractionResponse()
+        return response
           .setContent('Duration of timeout can only be between 1 minute and 4 weeks.')
-          .setEmoji('cross')
+          .setSuccess(false)
           .setEphemeral();
       }
     }
@@ -98,12 +98,12 @@ module.exports = class extends Command {
       auditLogReason: `Set-up by ${user.globalName}`
     });
 
-    return new Command.InteractionEmbedResponse()
+    return response
       .setColour('blue')
       .setDescription(`### ${resolveEmoji('check')} Mention spam filter now enabled. I will\n- ${msg.join('\n- ')}.`);
   }
 
-  parseDuration (input) {
+  parseDuration(input) {
     const years = input.match(/(\d+)\s*y((ea)?rs?)?/) || ['', 0];
     const months = input.match(/(\d+)\s*(M|mo(nths?)?)/) || ['', 0];
     const weeks = input.match(/(\d+)\s*w((ee)?ks?)?/) || ['', 0];

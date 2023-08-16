@@ -1,75 +1,112 @@
-const { InteractionResponseType, MessageFlags } = require('../../constants/Types');
-const { resolveEmoji } = require('../../constants/Emojis');
+const { InteractionResponseType } = require('../../constants/Types');
 
-class InteractionResponse {
+module.exports = class InteractionResponse {
 
-  constructor () {
-    this.type = InteractionResponseType.ChannelMessageWithSource;
-    this.flags = 0;
-    this.content = null;
-    this.components = [];
+  constructor(core, interaction) {
+    this.core = core;
+    this.interaction = interaction;
+
+    this.data = {};
+    this.reset();
+  }
+
+  newMessageResponse() {
+    const InteractionResponseMessage = require('./InteractionResponseMessage');
+    return new InteractionResponseMessage(this.core, this.interaction);
+  }
+
+  reset() {
+    this.data = {};
   }
 
   /**
-   * Set the type to update a message [COMPONENTS ONLY]
+   * Acknowledge the command to response later
+   */
+  defer() {
+    this.interaction.deferred = true;
+    this.data.type = InteractionResponseType.AcknowledgeWithSource;
+    return this._callback({
+      type: this.data.type
+    });
+  }
+
+
+  /**
+   * Callback with UPDATE_MESSAGE response type
+   * (component interactions only)
+   */
+  update() {
+    this.data.type = InteractionResponseType.UpdateMessage;
+    return this.callback();
+  }
+
+  /**
+   * Set the type to callback
    * @returns {InteractionResponse}
    */
-  updateMessage () {
-    this.type = InteractionResponseType.UpdateMessage;
-    return this;
+  async callback() {
+    this.interaction.replied = true;
+    return await this._callback(this.toJSON());
+  }
+
+  async _callback(data) {
+    const fn = this.interaction.respond;
+    if (fn && (!this.interaction.deferred || this.data.type === InteractionResponseType.AcknowledgeWithSource)) {
+      fn(data);
+      return null;
+    } else {
+      return await this.core.rest.api
+        .interactions(this.interaction.id)(this.interaction.token)
+        .callback()
+        .post(data);
+    }
   }
 
   /**
-   * Set the type to ack and edit response later
-   * @returns {InteractionResponse}
+   * Edit the original response
+   * @param [token] Optional token to edit a different message
    */
-  ack () {
-    this.type = InteractionResponseType.AcknowledgeWithSource;
-    return this;
+  async editOriginal(token) {
+    return await this.core.rest.api
+      .webhooks(this.core.config.applicationID)(token || this.interaction?.token)
+      .messages('@original')
+      .patch(this.toJSON().data);
   }
 
   /**
-   * Set the message content
-   * @param {string} content
-   * @returns {InteractionResponse}
+   * Delete the original response
    */
-  setContent (content) {
-    this.content = content;
-    return this;
+  async deleteOriginal() {
+    return await this.core.rest.api
+      .webhooks(this.core.config.applicationID)(this.interaction.token)
+      .messages('@original')
+      .delete();
   }
 
   /**
-   * Set this response as ephemeral
-   * @returns {InteractionResponse}
+   * Create a follow-up message
+   * @param [token] Optional token to follow up a different message
    */
-  setEphemeral () {
-    this.flags |= MessageFlags.Ephemeral;
-    return this;
+  async createFollowupMessage(token) {
+    return await this.core.rest.api
+      .webhooks(this.core.config.applicationID)(token || this.interaction?.token)
+      .post(this.toJSON().data);
   }
 
   /**
-   * Set the emoji to place at the beginning of the content
-   * This should be called after InteractionResponse.setContent()
-   * @param {string} emoji
-   * @returns {InteractionEmbedResponse}
+   * Edit a follow-up message
    */
-  setEmoji (emoji) {
-    this.content = `${resolveEmoji(emoji)} ${this.content || ''}`;
-    return this;
+  async editFollowupMessage(messageId) {
+    return await this.core.rest.api
+      .webhooks(this.core.config.applicationID)(this.interaction.token)
+      .messages(messageId)
+      .patch(this.toJSON().data);
   }
 
-  toJSON () {
-    const result = {
-      type: this.type,
-      data: {
-        components: this.components.map(c => c.toJSON ? c.toJSON() : c)
-      }
+  toJSON() {
+    return {
+      type: this.data.type
     };
-    if (this.flags) result.data.flags = this.flags;
-    if (this.content) result.data.content = this.content;
-    return result;
   }
 
-}
-
-module.exports = InteractionResponse;
+};

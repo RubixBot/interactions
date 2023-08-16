@@ -4,7 +4,7 @@ const { Colours } = require('../../../constants/Colours');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'create',
       description: 'Create a new giveaway in a specified channel.',
@@ -18,12 +18,12 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ args: { channel, duration, winners, item }, rest, db, redis }) {
+  async run({ args: { channel, duration, winners, item }, rest, db, redis, response }) {
     duration = this.parseDuration(duration.value);
     if (!duration) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Could not parse duration')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
@@ -42,14 +42,14 @@ module.exports = class extends Command {
         components: [{
           type: ComponentType.ActionRow,
           components: [
-            { type: ComponentType.Button, label: '🎉 Enter Giveaway', custom_id: randomID, style: 2 }
+            { type: ComponentType.Button, label: '🎉 Enter Giveaway', custom_id: `command:giveaway.create:enter:${randomID}`, style: 2 }
           ]
         }]
       });
     } catch (e) {
-      return new Command.InteractionResponse()
+      return response
         .setContent(`I could not create a message in <#${channel.channel.id}>`)
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
@@ -66,12 +66,46 @@ module.exports = class extends Command {
       giveawayID: randomID
     }));
 
-    return new Command.InteractionResponse()
+    return response
       .setContent('Created giveaway!')
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
-  parseDuration (input) {
+  async onButtonInteraction({ db, response, member }, meta, [_, giveawayID]) {
+    const timedActions = await db.getAllTimedActions();
+    const timedAction = timedActions.filter(c => c.type === 'giveaway' && c.id === Number(giveawayID))[0];
+    if (!timedAction) {
+      response
+        .setContent('Error finding timed action, the giveaway may be ending.')
+        .setSuccess(false)
+        .setEphemeral().callback();
+      return;
+    }
+
+    if (timedAction.entrees.includes(member.id)) {
+      timedAction.entrees = timedAction.entrees.filter(e => e !== member.id);
+
+      await db.editTimedAction(timedAction._id, timedAction);
+      response
+        .setContent('You have been removed from this giveaway.')
+        .setSuccess(false)
+        .setEphemeral()
+        .callback();
+      return;
+    } else {
+      timedAction.entrees.push(member.id);
+
+      await db.editTimedAction(timedAction._id, timedAction);
+      response
+        .setContent('You have been entered to this giveaway.')
+        .setSuccess(true)
+        .setEphemeral()
+        .callback();
+      return;
+    }
+  }
+
+  parseDuration(input) {
     const years = input.match(/(\d+)\s*y((ea)?rs?)?/) || ['', 0];
     const months = input.match(/(\d+)\s*(M|mo(nths?)?)/) || ['', 0];
     const weeks = input.match(/(\d+)\s*w((ee)?ks?)?/) || ['', 0];

@@ -9,8 +9,8 @@ module.exports = class extends Command {
     });
   }
 
-  run () {
-    return new Command.InteractionEmbedResponse()
+  run ({ response }) {
+    return response
       .setColour('blue')
       .setDescription([
         '## Help: Custom Commands',

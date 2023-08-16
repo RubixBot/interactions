@@ -3,15 +3,15 @@ const responses = require('./responses.json');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'tod',
       description: 'Return a Truth Or Dare question.'
     });
   }
 
-  async run () {
-    return new Command.InteractionResponse()
+  async run ({ response }) {
+    return response
       .setContent(`:scream: ${responses.tod[Math.floor(Math.random() * responses.tod.length)]}`);
   }
 

@@ -3,7 +3,7 @@ const Command = require('../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'disable',
       description: 'Disable slowmode in a channel.',
@@ -14,15 +14,15 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ rest, user, args: { channel } }) {
+  async run({ rest, user, args: { channel }, response }) {
     await rest.api.channels(channel.channel.id).patch({
       rate_limit_per_user: 0,
       auditLogReason: `${user.globalName} disabled slowmode.`
     });
 
-    return new Command.InteractionResponse()
+    return response
       .setContent(`Disabled slowmode in **#${channel.channel.name}**.`)
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
 };

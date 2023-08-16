@@ -3,7 +3,7 @@ const Command = require('../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'create',
       description: 'Add reaction to a message to give users a role when they click.',
@@ -17,13 +17,13 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ args: { channel, message, emoji, role }, settings, rest }) {
+  async run({ args: { channel, message, emoji, role }, settings, rest, response }) {
     try {
       await rest.api.channels(channel.channel.id).messages(message.value).get();
-    } catch(e) {
-      return new Command.InteractionResponse()
+    } catch (e) {
+      return response
         .setContent('I could not find that message in that channel.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
@@ -35,9 +35,9 @@ module.exports = class extends Command {
     try {
       await rest.api.channels(channel.channel.id).messages(message.value).reactions(emoji.value, '@me').put();
     } catch (e) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('I could not add an emoji to that message.\nIf it is a custom emoji, ensure I am in the server where the emoji is made.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
@@ -58,9 +58,9 @@ module.exports = class extends Command {
 
     settings.set('reaction_roles', menus);
     await settings.save();
-    return new Command.InteractionResponse()
+    return response
       .setContent(`I will now give the **${role.role.name}** role when someone clicks that emoji.`)
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
 };

@@ -9,14 +9,14 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ id, token }) {
+  async run ({ response, interaction }) {
     const start = Date.now();
-    await this.core.rest.api.interactions(id, token).callback.post(new Command.InteractionResponse()
-      .ack());
+    const responseTime = start - interaction.createdTimestamp;
+    await response.defer();
 
-    return this.core.rest.api.webhooks(this.core.config.applicationID, token).messages('@original').patch(
-      new Command.InteractionResponse()
-        .setContent(`Pong! \`${Date.now() - start}ms\``).toJSON().data);
+    response
+      .setContent(`Pong! Response time: \`${responseTime}ms\` API: \`${Date.now() - start}ms\``)
+      .editOriginal();
   }
 
 };

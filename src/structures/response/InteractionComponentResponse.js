@@ -3,9 +3,12 @@ const { ComponentType, ComponentButtonStyle } = require('../../constants/Types')
 
 class InteractionComponentResponse extends InteractionResponse {
 
-  constructor() {
-    super();
-    this.components = [];
+  reset() {
+    super.reset();
+    this.data = {
+      ...this.data,
+      components: []
+    };
   }
 
   /**
@@ -13,7 +16,7 @@ class InteractionComponentResponse extends InteractionResponse {
    * @returns {InteractionResponse}
    */
   addActionRow () {
-    this.components.push({
+    this.data.components.push({
       type: ComponentType.ActionRow,
       components: []
     });
@@ -27,7 +30,7 @@ class InteractionComponentResponse extends InteractionResponse {
    */
   bulkAddActionRow (rows) {
     rows.forEach(row => {
-      this.components.push({
+      this.data.components.push({
         type: ComponentType.ActionRow,
         components: row
       });
@@ -42,12 +45,12 @@ class InteractionComponentResponse extends InteractionResponse {
    * @returns {InteractionResponse}
    */
   addSelectMenu (selectMenu) {
-    if (!this.components.length) {
+    if (!this.data.components.length) {
       this.addActionRow();
     }
 
     selectMenu = { ...selectMenu, type: ComponentType.SelectMenu };
-    this.components[this.components.length - 1].components.push(selectMenu);
+    this.data.components[this.components.length - 1].components.push(selectMenu);
 
     return this;
   }
@@ -58,7 +61,7 @@ class InteractionComponentResponse extends InteractionResponse {
    * @returns {InteractionResponse}
    */
   addButton (button) {
-    if (!this.components.length) {
+    if (!this.data.components.length) {
       this.addActionRow();
     }
 
@@ -72,15 +75,9 @@ class InteractionComponentResponse extends InteractionResponse {
       ...button,
       type: ComponentType.Button
     };
-    this.components[this.components.length - 1].components.push(button);
+    this.data.components[this.data.components.length - 1].components.push(button);
 
     return this;
-  }
-
-  toJSON () {
-    const result = super.toJSON();
-    result.data.components = this.components;
-    return result;
   }
 
 }

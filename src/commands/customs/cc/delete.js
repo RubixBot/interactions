@@ -14,27 +14,27 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ rest, guildID, args, db }) {
+  async run ({ rest, guildID, args, db, response }) {
     const custom = await db.getCustomCommand(guildID, args.name.value);
     if (!custom) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Custom command does not exist!')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
     const guildCommands = await rest.api.applications(this.core.config.applicationID).guilds(guildID).commands.get();
     const customCommand = guildCommands.find((c) => c.name === args.name.value.toLowerCase());
     if (!customCommand) {
       await db.deleteCustomCommand(guildID, args.name.value.toLowerCase());
-      return new Command.InteractionResponse()
+      return response
         .setContent(`Deleted custom command \`${args.name.value.toLowerCase()}\`.`)
-        .setEmoji('check');
+        .setSuccess(true);
     } else {
       await db.deleteCustomCommand(guildID, args.name.value.toLowerCase());
       await rest.api.applications(this.core.config.applicationID).guilds(guildID).commands(customCommand.id).delete();
-      return new Command.InteractionResponse()
+      return response
         .setContent(`Deleted custom command \`${args.name.value.toLowerCase()}\`.`)
-        .setEmoji('check');
+        .setSuccess(true);
     }
   }
 

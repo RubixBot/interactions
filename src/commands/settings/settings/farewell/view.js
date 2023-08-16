@@ -2,7 +2,7 @@ const Command = require('../../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'view',
       description: 'View the current farewell message.',
@@ -10,19 +10,19 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ settings }) {
+  async run({ settings, response }) {
     const farewell = settings.get('farewell');
 
     if (farewell) {
-      return new Command.InteractionEmbedResponse()
+      return response
         .setColour('blue')
         .setTitle('Farewell')
         .addField('Channel', `<#${farewell.channelID}>`)
         .addField('Message', farewell.message);
     } else {
-      return new Command.InteractionResponse()
+      return response
         .setContent('There is no farewell message setup.')
-        .setEmoji('cross');
+        .setSuccess(false);
     }
   }
 

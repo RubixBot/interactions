@@ -20,10 +20,11 @@ const DatabaseHandler = require('./framework/Database');
 const TimedActions = require('./framework/TimedActions');
 
 const User = require('./structures/discord/User');
+const { InteractionResponseType, InteractionType } = require('./constants/Types');
 
 module.exports = class Interactions {
 
-  constructor (id, worker, logger) {
+  constructor(id, worker, logger) {
     // Init Sentry
     if (config.sentry) {
       sentry.init({
@@ -50,7 +51,7 @@ module.exports = class Interactions {
     this.start();
   }
 
-  async start () {
+  async start() {
     this.logger.info(`Assigned interactions id ${this.id}, starting!`, { src: 'core' });
     await this.database.connect();
 
@@ -73,10 +74,26 @@ module.exports = class Interactions {
   /**
    * Register the routes.
    */
-  async registerRoutes () {
+  async registerRoutes() {
     this.app.post('/', this.verifySignature, async (req, res) => {
-      const result = await this.dispatch.handleInteraction(req.body);
-      return res.json(result);
+      if (req.body.type === InteractionType.Ping) {
+        res.status(200).json({ type: InteractionResponseType.Pong });
+        return;
+      }
+
+      const cb = (data) => res.json(data);
+
+      const result = await this.dispatch.handleInteraction(req.body, cb);
+      if (result && result.replied) {
+        cb();
+        return;
+      } else if (result && result.type) {
+        cb(result);
+        return;
+      } else {
+        setTimeout(() => cb(), 2500);
+        return;
+      }
     });
   }
 
@@ -87,7 +104,7 @@ module.exports = class Interactions {
    * @param next {function}
    * @returns {boolean}
    */
-  verifySignature (req, res, next) {
+  verifySignature(req, res, next) {
     const signature = req.header('X-Signature-Ed25519');
     const timestamp = req.header('X-Signature-Timestamp');
 

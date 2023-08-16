@@ -4,7 +4,7 @@ const moment = require('moment');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'userinfo',
       description: 'View information about a member.',
@@ -14,10 +14,10 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ args }) {
+  async run({ args, response }) {
     const member = args.member.member;
     const user = args.member.user;
-    const resp = new Command.InteractionEmbedResponse()
+    const resp = response
       .setColour('blue')
       .setAuthor(`${user.globalName}${user.bot ? ' [BOT]' : ''}`, user.avatarURL)
       .setThumbnail(user.avatarURL)

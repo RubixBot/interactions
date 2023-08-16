@@ -1,5 +1,7 @@
 // Command Context
 
+const InteractionResponseMessage = require('../structures/response/InteractionResponseMessage');
+
 module.exports = class Context {
 
   constructor (core, appCommand, interaction, settings, userSettings) {
@@ -10,6 +12,8 @@ module.exports = class Context {
     this.args = {};
     this.settings = settings;
     this.userSettings = userSettings;
+
+    this.response = new InteractionResponseMessage(this.core, interaction);
   }
 
   get id () {

@@ -2,15 +2,15 @@ const Command = require('../../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'tags',
       description: 'Show a list of greeting tags available.'
     });
   }
 
-  run () {
-    return new Command.InteractionEmbedResponse()
+  run({ response }) {
+    return response
       .setColour('blue')
       .setTitle('Greeting Tags')
       .setDescription([

@@ -15,28 +15,29 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ user, rest, guildID, args, db }) {
+  async run ({ user, rest, guildID, args, db, response }) {
     const name = args.name.value.toLowerCase();
     if (name.length > 32) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Custom command names cannot be longer than 32 characters.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
+      return;
     }
 
     if (args) {
       if (this.core.dispatch.commandStore.get(name)) {
-        return new Command.InteractionResponse()
+        return response
           .setContent('This is a core command and cannot be overriden.')
-          .setEmoji('cross')
+          .setSuccess(false)
           .setEphemeral();
       }
     }
     const custom = await db.getCustomCommand(guildID, name);
     if (custom) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Custom command already exists!')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
@@ -46,9 +47,9 @@ module.exports = class extends Command {
     });
     await db.createCustomCommand(guildID, name, user.globalName, args.message.value);
 
-    return new Command.InteractionResponse()
+    return response
       .setContent(`Created custom command \`${name}\`.`)
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
 };

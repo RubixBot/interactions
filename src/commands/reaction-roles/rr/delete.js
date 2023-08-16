@@ -3,7 +3,7 @@ const Command = require('../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'delete',
       description: 'Delete a reaction role menu.',
@@ -15,19 +15,19 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ args: { channel, message }, settings, rest }) {
+  async run({ args: { channel, message }, settings, rest, response }) {
     try {
       await rest.api.channels(channel.channel.id).messages(message.value).get();
-    } catch(e) {
-      return new Command.InteractionResponse()
+    } catch (e) {
+      return response
         .setContent('I could not find that message in that channel.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
     try {
       await rest.api.channels(channel.channel.id).messages(message.value).reactions().delete();
-    } catch (e) {} // eslint-disable-line no-empty
+    } catch (e) { } // eslint-disable-line no-empty
 
     const menus = settings.get('reaction_roles') || {};
     if (menus[channel.channel.id] && menus[channel.channel.id][message.value]) {
@@ -36,9 +36,9 @@ module.exports = class extends Command {
 
     settings.set('reaction_roles', menus);
     await settings.save();
-    return new Command.InteractionResponse()
+    return response
       .setContent('Reaction role menu deleted.')
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
 };

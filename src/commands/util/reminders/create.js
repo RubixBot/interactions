@@ -3,7 +3,7 @@ const Command = require('../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'create',
       description: 'Create a reminder.',
@@ -14,12 +14,12 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ db, user, args: { time, reminder }, channelID }) {
+  async run({ db, user, args: { time, reminder }, channelID, response }) {
     time = this.parseDuration(time.value);
     if (!time) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Could not parse time.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
@@ -28,12 +28,12 @@ module.exports = class extends Command {
       channelID,
       reminder: reminder.value
     });
-    return new Command.InteractionResponse()
+    return response
       .setContent('Okay, I will remind you.')
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
-  parseDuration (input) {
+  parseDuration(input) {
     const years = input.match(/(\d+)\s*y((ea)?rs?)?/) || ['', 0];
     const months = input.match(/(\d+)\s*(M|mo(nths?)?)/) || ['', 0];
     const weeks = input.match(/(\d+)\s*w((ee)?ks?)?/) || ['', 0];

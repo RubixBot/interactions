@@ -12,8 +12,7 @@ const {
   InteractionButton,
   InteractionCommand,
   InteractionResponse,
-  InteractionComponentResponse,
-  InteractionEmbedResponse,
+  InteractionResponseMessage,
   InteractionSelect,
   InteractionAutocomplete,
   Context
@@ -24,13 +23,13 @@ const CommandStore = require('./CommandStore');
 
 module.exports = class Dispatch {
 
-  constructor (core, logger) {
+  constructor(core, logger) {
     this.logger = logger;
     this.core = core;
     this.commandStore = new CommandStore(core);
   }
 
-  async handleInteraction (data) {
+  async handleInteraction(data, cb) {
     switch (data.type) {
       case InteractionType.Ping:
         return {
@@ -38,17 +37,17 @@ module.exports = class Dispatch {
         };
 
       case InteractionType.ApplicationCommand:
-        return this.handleCommand(new InteractionCommand(data))
+        return this.handleCommand(new InteractionCommand(data, cb))
           .catch(this.handleError.bind(this));
 
       case InteractionType.MessageComponent:
         switch (data.data.component_type) {
           case ComponentType.Button:
-            return this.handleComponent(new InteractionButton(data))
+            return this.handleComponent(new InteractionButton(data, cb))
               .catch(this.handleError.bind(this));
 
           case ComponentType.SelectMenu:
-            return this.handleComponent(new InteractionSelect(data))
+            return this.handleComponent(new InteractionSelect(data, cb))
               .catch(this.handleError.bind(this));
 
           default:
@@ -56,7 +55,7 @@ module.exports = class Dispatch {
         }
 
       case InteractionType.ApplicationCommandAutocomplete:
-        return this.handleAutocomplete(new InteractionAutocomplete(data))
+        return this.handleAutocomplete(new InteractionAutocomplete(data, cb))
           .catch(this.handleError.bind(this));
 
       default:
@@ -65,12 +64,8 @@ module.exports = class Dispatch {
     }
   }
 
-  async handleCommand (interaction) {
-    if (!interaction.guildID) {
-      return new InteractionResponse()
-        .setContent('DM commands are disabled, add me to a server to use my commands.')
-        .setEmoji('cross');
-    }
+  async handleCommand(interaction) {
+    if (!interaction.guildID) return null;
 
     const customCommand = await this.core.database.getCustomCommand(interaction.guildID, interaction.name);
     if (customCommand) {
@@ -78,7 +73,7 @@ module.exports = class Dispatch {
         .replace(/{serverid}/g, interaction.guildID);
 
       const rolesToAdd = parsedMessage.match(/{addrole:(\d+)}/g);
-      rolesToAdd.forEach((role) => {
+      rolesToAdd?.forEach((role) => {
         let roleID = role.replace('{addrole:', '').replace('}', '');
         this.core.rest.api.guilds(interaction.guildID).members(interaction.user.id).roles(roleID).put({
           auditLogReason: `Custom Command: ${interaction.name}`
@@ -86,9 +81,9 @@ module.exports = class Dispatch {
         parsedMessage = parsedMessage.replace(role, '');
       });
 
-      return new InteractionComponentResponse()
+      return new InteractionResponseMessage()
         .setContent(parsedMessage)
-        .addButton({ custom_id: 'disabled', label: 'Custom Command', style: ComponentButtonStyle.Grey, disabled: true });
+        .addButton({ custom_id: 'disabled', label: 'Custom Command', style: ComponentButtonStyle.Grey, disabled: true }).toJSON();
     }
 
     const startTimestamp = Date.now();
@@ -112,95 +107,98 @@ module.exports = class Dispatch {
     const missingPerms = context.member.permissions.missing(applicationCommand.permissions);
     if (missingPerms.length) {
       const permissionString = missingPerms.map(p => PermissionFlags[p]).join(', ');
-      return new InteractionEmbedResponse()
+      context.response
         .setDescription(`You are missing permissions to use this command.\nMissing: \`${permissionString}\``)
-        .setColour('red')
-        .setEmoji('cross')
-        .setEphemeral();
+        .setSuccess(false)
+        .setEphemeral()
+        .callback();
+      return null;
     }
 
     //  Check for a global command
     const disabled = await this.core.redis.get(`commands:${applicationCommand.name}:disabled`);
     if (disabled && disabled !== 'no') {
-      return new InteractionEmbedResponse()
-        .setContent('This command is disabled')
-        .setDescription(`**Reason:** ${disabled}`)
-        .setColour('red');
+      context.response
+        .setDescription(`This command is disabled.\n**Reason:** ${disabled}`)
+        .setSuccess(false)
+        .callback();
+      return null;
     }
 
     // Run the command
-    let resp;
     try {
-      resp = await applicationCommand.run(context);
+      await applicationCommand.run(context);
+
+      // Command Metrics
+      if (!applicationCommand.isDeveloper) {
+        this.core.metrics.histogram('command.duration', Date.now() - startTimestamp, { command: applicationCommand.name });
+        this.core.metrics.histogram('command.latency', latency, { command: applicationCommand.name });
+        this.core.metrics.increment('command.run', { command: applicationCommand.name });
+      }
+
+      if (!context.response.interaction.replied) {
+        if (context.response.interaction.deferred) {
+          await context.response.editOriginal();
+        } else {
+          await context.response.callback();
+        }
+      }
+
+      return null;
     } catch (e) {
       captureException(e);
       this.core.logger.error(e, { src: 'dispatch/handleCommand' });
       this.core.metrics.histogram('command.error', { command: applicationCommand.name });
-      resp = new InteractionEmbedResponse()
-        .setDescription('Something unexpected went wrong\nDevelopers have been made aware, try again later')
-        .setColour('red');
+      context.response
+        .setEphemeral()
+        .setSuccess(false)
+        .setDescription('Something went wrong executing this command.')
+        .callback();
+      return null;
     }
-
-    // Command Metrics
-    if (!applicationCommand.isDeveloper) {
-      this.core.metrics.histogram('command.duration', Date.now() - startTimestamp, { command: applicationCommand.name });
-      this.core.metrics.histogram('command.latency', latency, { command: applicationCommand.name });
-      this.core.metrics.increment('command.run', { command: applicationCommand.name });
-    }
-
-    return resp;
   }
 
-  async handleComponent (interaction) {
-    // find in redis
-    let data = await this.core.redis.get(`components:${interaction.customID}:meta`);
-    if (!data) {
-      return new InteractionResponse()
-        .setContent('Interaction time-out')
-        .setEmoji('cross')
-        .setEphemeral();
+  async handleComponent(interaction) {
+    const context = new Context(this.core, null, interaction);
+
+    let metadata;
+    const [type, ...params] = interaction.customID.split(':');
+    if (type === 'command' || type === 'public') {
+      const [command, subCommand] = params.splice(0, 1)[0].split('.');
+      metadata = {
+        type: 'command',
+        command,
+        subCommand
+      };
     }
-    data = JSON.parse(data);
-    if (data.removeOnResponse) {
-      await this.core.redis.del(`components:${interaction.customID}:metadata`);
-    }
 
-    switch (data.type) {
-      case 'giveaway': {
-        const timedActions = await this.core.database.getAllTimedActions();
-        const timedAction = timedActions.filter(c => c.type === 'giveaway' && c.id === data.giveawayID)[0];
-        if (!timedAction) {
-          return new InteractionResponse()
-            .setContent('Error finding timed action, the giveaway may be ending.')
-            .setEmoji('cross')
-            .setEphemeral();
-        }
+    if (!metadata) return null;
 
-        if (timedAction.entrees.includes(interaction.member.id)) {
-          timedAction.entrees = timedAction.entrees.filter(e => e !== interaction.member.id);
+    // TODO: HANDLE PUBLIC
 
-          await this.core.database.editTimedAction(timedAction._id, timedAction);
-          return new InteractionResponse()
-            .setContent('You have been removed from this giveaway.')
-            .setEmoji('cross')
-            .setEphemeral();
-        } else {
-          timedAction.entrees.push(interaction.member.id);
+    try {
+      switch (metadata.type) {
+        case 'command': {
+          let command = this.core.dispatch.commandStore.get(metadata.command);
+          if (metadata.subCommand) {
+            command = command.options.find(option => option.name === metadata.subCommand);
+          }
 
-          await this.core.database.editTimedAction(timedAction._id, timedAction);
-          return new InteractionResponse()
-            .setContent('You have been entered to this giveaway.')
-            .setEmoji('check')
-            .setEphemeral();
+          if (command?.onButtonInteraction) {
+            await command.onButtonInteraction(context, metadata, params);
+          }
+          break;
         }
       }
+    } catch (error) {
+      // await this._onError(error, context);
+      console.log(error);
     }
 
-    return new InteractionResponse()
-      .setContent('Unknown action');
+    return null;
   }
 
-  async handleAutocomplete (data) {
+  async handleAutocomplete(data) {
     const topLevelCommand = this.commandStore.get(data.data.name);
     const applicationCommand = this.getSubCommand(data, topLevelCommand);
     if (!applicationCommand) return null;
@@ -210,7 +208,7 @@ module.exports = class Dispatch {
     return { type: InteractionResponseType.ApplicationCommandAutocompleteResult, data: { choices: result } };
   }
 
-  getSubCommand (interactionCommand, command) {
+  getSubCommand(interactionCommand, command) {
     if (!command) {
       return null;
     }
@@ -225,7 +223,7 @@ module.exports = class Dispatch {
     return command;
   }
 
-  findNonSubCommandOption (options) {
+  findNonSubCommandOption(options) {
     if (SubCommandTypes.includes(options?.[0]?.type)) {
       return this.findNonSubCommandOption(options[0].options);
     }
@@ -237,7 +235,7 @@ module.exports = class Dispatch {
    * @param error
    * @returns {InteractionResponse}
    */
-  handleError (error) {
+  handleError(error) {
     captureException(error);
     this.logger.error(error.stack, { src: 'dispatch/handleError' });
     return new InteractionResponse()

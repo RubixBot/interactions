@@ -5,18 +5,18 @@ require('moment-duration-format');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'stats',
       description: 'View statistical information.'
     });
   }
 
-  async run ({ rest, db }) {
+  async run({ rest, db, response }) {
     const guilds = (await rest.api.applications('@me').get()).approximate_guild_count;
     const timedActions = (await db.getAllTimedActions()).length;
 
-    return new Command.InteractionEmbedResponse()
+    return response
       .setColour('blue')
       .setTitle('Statistics')
       .setThumbnail(this.core.user.avatarURL)
@@ -27,7 +27,7 @@ module.exports = class extends Command {
         **• Version: **${require('../../../package').version}`, true);
   }
 
-  convertBytes (bytes) {
+  convertBytes(bytes) {
     let sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     if (bytes === 0) return 'n/a';
     let by = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));

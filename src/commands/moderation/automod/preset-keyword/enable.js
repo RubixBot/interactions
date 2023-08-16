@@ -4,7 +4,7 @@ const { resolveEmoji } = require('../../../../constants/Emojis');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'enable',
       description: 'Configure a preset keyword filter to moderate members who say words on a set list.',
@@ -22,20 +22,20 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ user, guildID, args: { block, alert, profanity, sexual_content, slurs, allowed_words, message, channel }, rest, appPermissions }) {
+  async run({ user, guildID, args: { block, alert, profanity, sexual_content, slurs, allowed_words, message, channel }, rest, appPermissions, response }) {
     if (!appPermissions.has('manageGuild')) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Rubix cannot manage auto moderation rules. I require the **Manage Server** permission.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
     const filters = await rest.api.guilds(guildID, 'auto-moderation').rules.get();
     const filter = filters.find(f => f.trigger_type === AutomodTriggerType.KeywordPreset);
     if (filter) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('There is already a preset keyword filter in place, use `/automod preset-keyword disable` to remove it.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
@@ -68,7 +68,7 @@ module.exports = class extends Command {
       msg.push(`send an alert to **#${channel.channel.name}**`);
     }
 
-    console.log(await rest.api.guilds(guildID, 'auto-moderation').rules.post({
+    await rest.api.guilds(guildID, 'auto-moderation').rules.post({
       name: 'Rubix Preset Keyword Filter',
       event_type: AutomodEventType.MessageSend,
       trigger_type: AutomodTriggerType.KeywordPreset,
@@ -80,14 +80,14 @@ module.exports = class extends Command {
       enabled: true,
 
       auditLogReason: `Set-up by ${user.globalName}`
-    }));
+    });
 
-    return new Command.InteractionEmbedResponse()
+    return response
       .setColour('blue')
       .setDescription(`### ${resolveEmoji('check')} Preset keyword filter now enabled. I will\n- ${msg.join('\n- ')}.`);
   }
 
-  parseDuration (input) {
+  parseDuration(input) {
     const years = input.match(/(\d+)\s*y((ea)?rs?)?/) || ['', 0];
     const months = input.match(/(\d+)\s*(M|mo(nths?)?)/) || ['', 0];
     const weeks = input.match(/(\d+)\s*w((ee)?ks?)?/) || ['', 0];

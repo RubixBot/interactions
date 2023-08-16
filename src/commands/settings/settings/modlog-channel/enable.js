@@ -3,7 +3,7 @@ const Command = require('../../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'enable',
       description: 'Set the mod-log channel.',
@@ -14,13 +14,13 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ settings, args }) {
+  async run({ settings, args, response }) {
     settings.set('modlog_channel', args.channel.channel.id);
     await settings.save();
 
-    return new Command.InteractionResponse()
+    return response
       .setContent('Updated the moderation log channel.')
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
 };

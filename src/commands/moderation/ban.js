@@ -4,7 +4,7 @@ const Ban = require('../../framework/moderation/Ban');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'ban',
       description: 'Ban a member from the server.',
@@ -16,11 +16,11 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ guildID, channelID, appPermissions, user, args }) {
+  async run({ guildID, channelID, appPermissions, user, args, response }) {
     if (!appPermissions.has('banMembers')) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Rubix cannot ban this member. Double check I have the **Ban Members** permission.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
@@ -32,8 +32,7 @@ module.exports = class extends Command {
       reason: args.reason?.value
     }).execute();
 
-    return new Command.InteractionResponse()
-      .setContent(result);
+    return response.setContent(result);
   }
 
 };

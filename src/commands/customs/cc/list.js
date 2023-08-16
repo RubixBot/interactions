@@ -11,15 +11,15 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ guildID, db }) {
+  async run ({ guildID, db, response }) {
     const commands = await db.getCustomCommands(guildID);
     if (commands.length === 0) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('No custom commands created yet.')
-        .setEmoji('cross');
+        .setSuccess(false);
     }
 
-    return new Command.InteractionEmbedResponse()
+    return response
       .setColour('blue')
       .setTitle('Custom Command List')
       .setDescription(commands.map(c => `### ${c.name}\n- Created by \`${c.creator}\``).join('\n'));

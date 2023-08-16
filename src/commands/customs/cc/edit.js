@@ -15,21 +15,21 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ guildID, args, db }) {
+  async run ({ guildID, args, db, response }) {
     const name = args.name.value.toLowerCase();
     const custom = await db.getCustomCommand(guildID, name);
     if (!custom) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Custom command does not exist!')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
     await db.editCustomCommand(guildID, name, args.message.value);
 
-    return new Command.InteractionResponse()
+    return response
       .setContent(`Modified content of custom command \`${name}\`.`)
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
 };

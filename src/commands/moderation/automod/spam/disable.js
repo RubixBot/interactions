@@ -3,7 +3,7 @@ const Command = require('../../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'disable',
       description: 'Disable the spam filter.',
@@ -11,29 +11,29 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ guildID, rest, user, appPermissions }) {
+  async run({ guildID, rest, user, appPermissions, response }) {
     if (!appPermissions.has('manageGuild')) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Rubix cannot manage auto moderation rules. I require the **Manage Server** permission.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
     const filters = await rest.api.guilds(guildID, 'auto-moderation').rules.get();
     const filter = filters.find(f => f.trigger_type === AutomodTriggerType.Spam);
     if (!filter) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('There is no spam filter setup for this server.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
     await rest.api.guilds(guildID, 'auto-moderation').rules(filter.id).delete({
       auditLogReason: `Removed by ${user.globalName}`
     });
-    return new Command.InteractionResponse()
+    return response
       .setContent('Removed this servers spam filter.')
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
 };

@@ -3,7 +3,7 @@ const Command = require('../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'delete',
       description: 'Delete a reminder.',
@@ -13,18 +13,18 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ db, user, args: { id } }) {
+  async run({ db, user, args: { id }, response }) {
     const reminders = (await db.getAllTimedActions()).filter(c => c.type === 'reminder' && c.userID === user.id);
 
     if (!reminders.length) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('You do not have any reminders set.')
-        .setEmoji('cross');
+        .setSuccess(false);
     } else {
       await db.deleteTimedAction(reminders[id.value - 1]._id);
-      return new Command.InteractionResponse()
+      return response
         .setContent('Reminder deleted.')
-        .setEmoji('check');
+        .setSuccess(true);
     }
   }
 

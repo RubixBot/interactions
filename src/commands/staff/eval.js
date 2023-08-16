@@ -4,7 +4,7 @@ const { inspect } = require('util');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'eval',
       description: 'Evaluate.',
@@ -15,7 +15,7 @@ module.exports = class extends Command {
     });
   }
 
-  async run (ctx) {
+  async run(ctx) {
     let resp;
     try {
       resp = await eval(`(async function(){${ctx.args.string.value}}).call()`);
@@ -23,8 +23,7 @@ module.exports = class extends Command {
       resp = e.stack;
     }
 
-    return new Command.InteractionResponse()
-      .setContent(`\`\`\`js\n${inspect(resp, 2).substring(0, 1900)}\n\`\`\``);
+    return ctx.response.setContent(`\`\`\`js\n${inspect(resp, 2).substring(0, 1900)}\n\`\`\``);
   }
 
 };

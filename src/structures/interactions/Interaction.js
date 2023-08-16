@@ -4,7 +4,7 @@ const Permission = require('../discord/Permission');
 
 class Interaction {
 
-  constructor (data) {
+  constructor (data, cb) {
     this.id = data.id;
     this.type = data.type;
     this.data = data.data;
@@ -21,6 +21,8 @@ class Interaction {
     } else {
       this.user = new User(data.user);
     }
+
+    this.respond = cb;
   }
 
   get createdTimestamp () {

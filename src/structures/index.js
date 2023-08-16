@@ -5,6 +5,7 @@ module.exports = {
   InteractionCommand: require('./interactions/InteractionCommand'),
   InteractionCommandOption: require('./interactions/InteractionCommandOption'),
   InteractionResponse: require('./response/InteractionResponse'),
+  InteractionResponseMessage: require('./response/InteractionResponseMessage'),
   InteractionEmbedResponse: require('./response/InteractionEmbedResponse'),
   InteractionComponentResponse: require('./response/InteractionComponentResponse'),
   InteractionSelect: require('./interactions/InteractionSelect'),

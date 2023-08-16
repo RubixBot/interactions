@@ -3,7 +3,7 @@ const Command = require('../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'enable',
       description: 'Activate slowmode in a channel.',
@@ -14,17 +14,17 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ channelID, rest, user, args: { channel, duration } }) {
+  async run({ rest, user, args: { channel, duration }, response }) {
     duration.value = this.parseDuration(duration.value);
     if (!duration.value) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Cannot parse duration.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     } else if (duration.value / 1000 < 1 || duration.value / 1000 > 21600) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Duration of slowmode can only be between 1 minute and 6 hours.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
@@ -33,12 +33,12 @@ module.exports = class extends Command {
       auditLogReason: `${user.globalName} activated slowmode.`
     });
 
-    return new Command.InteractionResponse()
+    return response
       .setContent(`Activated slowmode in **#${channel.channel.name}**.`)
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
-  parseDuration (input) {
+  parseDuration(input) {
     const years = input.match(/(\d+)\s*y((ea)?rs?)?/) || ['', 0];
     const months = input.match(/(\d+)\s*(M|mo(nths?)?)/) || ['', 0];
     const weeks = input.match(/(\d+)\s*w((ee)?ks?)?/) || ['', 0];

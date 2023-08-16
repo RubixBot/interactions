@@ -3,7 +3,7 @@ const Command = require('../../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'enable',
       description: 'Configure a spam filter to be moderated.',
@@ -17,27 +17,27 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ user, guildID, args: { block, alert, message, channel }, rest, appPermissions }) {
+  async run({ user, guildID, args: { block, alert, message, channel }, rest, appPermissions, response }) {
     if (!appPermissions.has('manageGuild')) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Rubix cannot manage auto moderation rules. I require the **Manage Server** permission.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
     if (alert.value === true && !channel?.channel) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('You must specify a channel to send the alert to!')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
     const filters = await rest.api.guilds(guildID, 'auto-moderation').rules.get();
     const filter = filters.find(f => f.trigger_type === AutomodTriggerType.Spam);
     if (filter) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('There is already a spam filter in place, use `/automod spam disable` to remove it.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
@@ -60,9 +60,9 @@ module.exports = class extends Command {
       auditLogReason: `Set-up by ${user.globalName}`
     });
 
-    return new Command.InteractionResponse()
+    return response
       .setContent(`Spam filter now enabled. I will ${block.value ? '**block the message**' : '**not** block the message'} and ${alert.value ? `**send an alert to ${channel.channel.name}**` : '**not** send an alert.'}`)
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
 };

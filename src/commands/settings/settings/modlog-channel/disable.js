@@ -2,7 +2,7 @@ const Command = require('../../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'disable',
       description: 'Disable the mod-log channel.',
@@ -10,13 +10,13 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ settings }) {
+  async run({ settings, response }) {
     settings.remove('modlog_channel');
     await settings.save();
 
-    return new Command.InteractionResponse()
+    return response
       .setContent('Disabled the moderation log channel.')
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
 };

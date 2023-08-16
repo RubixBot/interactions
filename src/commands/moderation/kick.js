@@ -4,7 +4,7 @@ const Kick = require('../../framework/moderation/Kick');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'kick',
       description: 'Kick a member from the server.',
@@ -16,11 +16,11 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ guildID, channelID, appPermissions, user, args }) {
+  async run({ guildID, channelID, appPermissions, user, args, response }) {
     if (!appPermissions.has('kickMembers')) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('Rubix cannot kick this member. Double check I have the **Kick Members** permission.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
@@ -32,8 +32,7 @@ module.exports = class extends Command {
       reason: args.reason?.value
     }).execute();
 
-    return new Command.InteractionResponse()
-      .setContent(result);
+    return response.setContent(result);
   }
 
 };

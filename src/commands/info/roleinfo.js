@@ -4,7 +4,7 @@ const { stripIndents } = require('common-tags');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'roleinfo',
       description: 'View information about a specific role.',
@@ -14,9 +14,9 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ guildID, rest, args }) {
+  async run({ args, response }) {
     const role = args.role.role;
-    const resp = new Command.InteractionEmbedResponse()
+    const resp = response
       .setColour(role.color)
       .setTitle(`Role ${role.name}`)
       .addField('General', stripIndents`**ID:** ${role.id}

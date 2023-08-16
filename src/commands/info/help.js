@@ -2,15 +2,15 @@ const Command = require('../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'help',
       description: 'View various information about how to use the  bot.'
     });
   }
 
-  async run ({ user }) {
-    return new Command.InteractionEmbedResponse()
+  async run({ user, response }) {
+    return response
       .setColour('blue')
       .setDescription(['### Rubix',
         `Hi **${user.globalName}**! Thank you for using Rubix, a multi-purpose Discord bot that packs a punch.`,

@@ -3,7 +3,7 @@ const Command = require('../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'end',
       description: 'End a giveaway early and pick the winners',
@@ -15,14 +15,14 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ args: { channel, message }, rest, db }) {
+  async run({ args: { channel, message }, rest, db, response }) {
     let msg;
     try {
       msg = await rest.api.channels(channel.channel.id).messages(message.value).get();
     } catch (e) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('I cannot find that message in that channel. Ensure you are using a valid message ID.')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
@@ -30,16 +30,16 @@ module.exports = class extends Command {
       .filter(event => event.type === 'giveaway' && event.messageID === msg.id)[0];
 
     if (!action) {
-      return new Command.InteractionResponse()
+      return response
         .setContent('I was unable to end this giveaway, is it still running?')
-        .setEmoji('cross')
+        .setSuccess(false)
         .setEphemeral();
     }
 
     await db.editTimedAction(action._id, { ...action, expires: Date.now() });
-    return new Command.InteractionResponse()
+    return response
       .setContent('Giveaway ending shortly!')
-      .setEmoji('check');
+      .setSuccess(true);
   }
 
 };
