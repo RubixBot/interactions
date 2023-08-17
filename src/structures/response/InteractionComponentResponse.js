@@ -15,7 +15,7 @@ class InteractionComponentResponse extends InteractionResponse {
    * Add an action row component
    * @returns {InteractionResponse}
    */
-  addActionRow () {
+  addActionRow() {
     this.data.components.push({
       type: ComponentType.ActionRow,
       components: []
@@ -28,7 +28,7 @@ class InteractionComponentResponse extends InteractionResponse {
    * Add multiple action rows
    * @returns {InteractionResponse}
    */
-  bulkAddActionRow (rows) {
+  bulkAddActionRow(rows) {
     rows.forEach(row => {
       this.data.components.push({
         type: ComponentType.ActionRow,
@@ -44,7 +44,7 @@ class InteractionComponentResponse extends InteractionResponse {
    * @param {SelectMenu} selectMenu Options for select menu
    * @returns {InteractionResponse}
    */
-  addSelectMenu (selectMenu) {
+  addSelectMenu(selectMenu) {
     if (!this.data.components.length) {
       this.addActionRow();
     }
@@ -60,7 +60,7 @@ class InteractionComponentResponse extends InteractionResponse {
    * @param {Button} button Options for the button
    * @returns {InteractionResponse}
    */
-  addButton (button) {
+  addButton(button) {
     if (!this.data.components.length) {
       this.addActionRow();
     }
@@ -77,6 +77,15 @@ class InteractionComponentResponse extends InteractionResponse {
     };
     this.data.components[this.data.components.length - 1].components.push(button);
 
+    return this;
+  }
+
+  /**
+   * Remove all the components.
+   * @returns {InteractionResponse}
+   */
+  removeAllComponents() {
+    this.data.components = 'NULL';
     return this;
   }
 

@@ -5,7 +5,7 @@ const Emojis = require('../../constants/Emojis');
 
 module.exports = class InteractionResponseMessage extends InteractionComponentResponse {
 
-  reset () {
+  reset() {
     super.reset();
     this.data = {
       ...this.data,
@@ -30,7 +30,7 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
    * @param {object} embed
    * @param {boolean} [firstOnly = true] only add the embed if it's the first
    */
-  addEmbed (embed = {}, firstOnly = true) {
+  addEmbed(embed = {}, firstOnly = true) {
     if (!this.data.embeds) {
       this.data.embeds = [];
     }
@@ -48,7 +48,7 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
    * @param {object} [options.stripIndents=true]
    * @returns {InteractionResponse}
    */
-  setContent (content, options) {
+  setContent(content, options) {
     this.data.content = options?.stripIndents ? content.stripIndents() : content;
     return this;
   }
@@ -68,7 +68,7 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
    * @param {string?} icon
    * @returns {InteractionResponse}
    */
-  setAuthor (name, icon) {
+  setAuthor(name, icon) {
     this.addEmbed();
     this._lastEmbed().author = { name, icon_url: icon };
     return this;
@@ -79,7 +79,7 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
    * @param {string} title
    * @returns {InteractionResponse}
    */
-  setTitle (title) {
+  setTitle(title) {
     this.addEmbed();
     this._lastEmbed().title = title;
     return this;
@@ -90,7 +90,7 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
    * @param {string} description
    * @returns {InteractionResponse}
    */
-  setDescription (description) {
+  setDescription(description) {
     this.addEmbed();
     this._lastEmbed().description = description;
     return this;
@@ -101,7 +101,7 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
    * @param field
    * @returns {InteractionResponseMessage}
    */
-  addField (name, value, inline = false) {
+  addField(name, value, inline = false) {
     this.addEmbed();
     if (!this._lastEmbed().fields) {
       this._lastEmbed().fields = [];
@@ -115,7 +115,7 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
    * @param footer
    * @returns {InteractionResponse}
    */
-  setFooter (footer) {
+  setFooter(footer) {
     this.addEmbed();
     this._lastEmbed().footer = { text: footer };
     return this;
@@ -126,7 +126,7 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
    * @param url
    * @returns {InteractionResponse}
    */
-  setImage (url) {
+  setImage(url) {
     this.addEmbed();
     this._lastEmbed().image = url ? { url } : undefined;
     return this;
@@ -174,13 +174,13 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
    * @param {string} colour
    * @returns {InteractionResponse}
    */
-  setColour (colour) {
+  setColour(colour) {
     this.data.options.colour = Colours[colour];
     return this;
   }
 
 
-  toJSON () {
+  toJSON() {
     const result = {
       ...super.toJSON(),
       data: { allowed_mentions: this.data.options.allowedMentions }
@@ -188,6 +188,7 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
 
     if (this.data.flags) result.data.flags = this.data.flags;
     if (this.data.components?.length) result.data.components = this.data.components;
+    if (this.data.components === 'NULL') result.data.components = [];
 
     if (this.data.content !== null) {
       if (this.data.content && !this.data.embeds?.[0]?.description) {
