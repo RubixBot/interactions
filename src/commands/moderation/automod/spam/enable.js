@@ -1,3 +1,4 @@
+const { resolveEmoji } = require('../../../../constants/Emojis');
 const { ApplicationCommandOptionType, AutomodEventType, AutomodTriggerType, AutomodActionType } = require('../../../../constants/Types');
 const Command = require('../../../../framework/Command');
 
@@ -42,11 +43,14 @@ module.exports = class extends Command {
     }
 
     let actions = [];
+    let msg = [];
     if (block.value === true) {
       actions.push({ type: AutomodActionType.BlockMessage, metadata: { custom_message: message?.value } });
+      msg.push(`**block** the message${message?.value ? ` with the message **${message.value}**` : ''}`);
     }
     if (alert.value === true) {
       actions.push({ type: AutomodActionType.SendAlert, metadata: { channel_id: channel.channel.id } });
+      msg.push(`sent an alert to **#${channel.channel.name}**`);
     }
 
     await rest.api.guilds(guildID, 'auto-moderation').rules.post({
@@ -61,8 +65,8 @@ module.exports = class extends Command {
     });
 
     return response
-      .setContent(`Spam filter now enabled. I will ${block.value ? '**block the message**' : '**not** block the message'} and ${alert.value ? `**send an alert to ${channel.channel.name}**` : '**not** send an alert.'}`)
-      .setSuccess(true);
+      .setDescription(`### ${resolveEmoji('check')} Spam filter now enabled. I will\n- ${msg.join('\n- ')}`)
+      .setColour('blue');
   }
 
 };
