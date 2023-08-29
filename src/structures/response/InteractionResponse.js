@@ -30,6 +30,17 @@ module.exports = class InteractionResponse {
     });
   }
 
+  /**
+   * Acknowledge the command to response later without a loading state.
+   */
+  deferUpdate() {
+    this.interaction.deferred = true;
+    this.data.type = InteractionResponseType.DeferredUpdateMessage;
+    return this._callback({
+      type: this.data.type
+    });
+  }
+
 
   /**
    * Callback with UPDATE_MESSAGE response type
