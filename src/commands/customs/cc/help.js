@@ -21,8 +21,12 @@ module.exports = class extends Command {
         'Some tags accept an **id**, you can use the `/serverinfo`, `/userinfo`, `/roleinfo` commands to get these ID\'s.',
         'Do not include the **< >** in the tag. Here is a list of tags and what they do:',
         '- `{user}` - the name of the user who ran the command',
+        '- `{userid}` - the ID of the user who ran the command.',
+        '- `{channelid}` - the ID of the channel the command was ran in.',
+        '- `{serverid}` - ID of the server',
         '- `{addrole:<id>}` - add a role to the user',
-        '- `{serverid}` - id of the server'
+        '- `{removerole:<id>}` - remove a role from the user',
+        '- `{choose:A|B|C}` - choose between A, B or C. Separate with a pipe |'
       ].join('\n'));
   }
 

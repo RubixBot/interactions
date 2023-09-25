@@ -1,4 +1,4 @@
-const { avatarURL, defaultAvatarURL, avatarURLSize } = require('../../constants/Endpoints');
+const { avatarURL, defaultAvatarURL, avatarURLSize, bannerURL } = require('../../constants/Endpoints');
 
 class User {
 
@@ -9,6 +9,7 @@ class User {
     this.discriminator = data.discriminator;
     this.username = data.username;
     this.globalName = data.global_name || data.username;
+    this.bannerHash = data.banner;
   }
 
   get createdAt () {
@@ -25,6 +26,10 @@ class User {
 
   get defaultAvatarURL () {
     return defaultAvatarURL(this.discriminator);
+  }
+
+  get bannerURL () {
+    return this.bannerHash ? bannerURL(this.id, this.bannerHash) : '';
   }
 
 }

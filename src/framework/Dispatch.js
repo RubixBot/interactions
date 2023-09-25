@@ -69,21 +69,7 @@ module.exports = class Dispatch {
 
     const customCommand = await this.core.database.getCustomCommand(interaction.guildID, interaction.name);
     if (customCommand) {
-      let parsedMessage = customCommand.message.replace(/{user}/g, interaction.user.globalName)
-        .replace(/{serverid}/g, interaction.guildID);
-
-      const rolesToAdd = parsedMessage.match(/{addrole:(\d+)}/g);
-      rolesToAdd?.forEach((role) => {
-        let roleID = role.replace('{addrole:', '').replace('}', '');
-        this.core.rest.api.guilds(interaction.guildID).members(interaction.user.id).roles(roleID).put({
-          auditLogReason: `Custom Command: ${interaction.name}`
-        }).catch();
-        parsedMessage = parsedMessage.replace(role, '');
-      });
-
-      return new InteractionResponseMessage()
-        .setContent(parsedMessage)
-        .addButton({ custom_id: 'disabled', label: 'Custom Command', style: ComponentButtonStyle.Grey, disabled: true }).toJSON();
+      return this.handleCustomCommand(interaction, customCommand);
     }
 
     const startTimestamp = Date.now();
@@ -131,9 +117,17 @@ module.exports = class Dispatch {
 
       // Command Metrics
       if (!applicationCommand.isDeveloper) {
-        this.core.metrics.histogram('commandDuration', Date.now() - startTimestamp, { command: applicationCommand.name });
-        this.core.metrics.histogram('commandLatency', latency, { command: applicationCommand.name });
-        this.core.metrics.counter('commandRun', { command: applicationCommand.name });
+        let commandName = '';
+        if (topLevelCommand.name === applicationCommand.name) {
+          commandName = applicationCommand.name;
+        } else {
+          commandName = `${topLevelCommand.name}.${applicationCommand.name}`;
+        }
+        this.core.metrics.histogram('commandDuration', Date.now() - startTimestamp, { command: commandName });
+        this.core.metrics.histogram('commandLatency', latency, { command: commandName });
+        this.core.metrics.counter('commandRun', { command: commandName });
+        await this.core.redis.set('commands:lastUsedTimestamp', Math.floor(Date.now() / 1000));
+        await this.core.redis.set('commands:lastUsed', commandName);
       }
 
       if (!context.response.interaction.replied) {
@@ -206,6 +200,42 @@ module.exports = class Dispatch {
 
     const result = await applicationCommand.handleAutocomplete(options, data);
     return { type: InteractionResponseType.ApplicationCommandAutocompleteResult, data: { choices: result } };
+  }
+
+  async handleCustomCommand (interaction, customCommand) {
+    let parsedMessage = customCommand.message.replace(/{user}/g, interaction.user.globalName)
+      .replace(/{userid}/g, interaction.user.id)
+      .replace(/{serverid}/g, interaction.guildID)
+      .replace(/{channelid}/g, interaction.channelID);
+
+    const rolesToAdd = parsedMessage.match(/{addrole:(\d+)}/g);
+    rolesToAdd?.forEach((role) => {
+      let roleID = role.replace('{addrole:', '').replace('}', '');
+      this.core.rest.api.guilds(interaction.guildID).members(interaction.user.id).roles(roleID).put({
+        auditLogReason: `Custom Command Action: ${interaction.name}`
+      }).catch();
+      parsedMessage = parsedMessage.replace(role, '');
+    });
+
+    const rolesToRemove = parsedMessage.match(/{removerole:(\d+)}/g);
+    rolesToRemove?.forEach((role) => {
+      let roleID = role.replace('{removerole:', '').replace('}', '');
+      this.core.rest.api.guilds(interaction.guildID).members(interaction.user.id).roles(roleID).delete({
+        auditLogReason: `Custom Command Action: ${interaction.name}`
+      }).catch();
+      parsedMessage = parsedMessage.replace(role, '');
+    });
+
+    const choose = parsedMessage.match(/{choose:(.*)}/g);
+    choose.forEach((replacing) => {
+      let options = replacing.replace('{choose:', '').replace('}', '').split('|');
+      let chose = options[Math.floor(Math.random() * options.length)];
+      parsedMessage = parsedMessage.replace(replacing, chose);
+    });
+
+    return new InteractionResponseMessage()
+      .setContent(parsedMessage)
+      .addButton({ custom_id: 'disabled', label: 'Custom Command', style: ComponentButtonStyle.Grey, disabled: true }).toJSON();
   }
 
   getSubCommand(interactionCommand, command) {

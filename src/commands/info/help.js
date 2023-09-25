@@ -12,13 +12,13 @@ module.exports = class extends Command {
   async run({ user, response }) {
     return response
       .setColour('blue')
-      .setDescription(['### Rubix',
+      .setDescription(['## Rubix',
         `Hi **${user.globalName}**! Thank you for using Rubix, a multi-purpose Discord bot that packs a punch.`,
         'To view a list of my commands, type `/` and click on my avatar.',
         'Some more complicated commands may have a `help` subcommand to help guide you with that particular command.',
         '\n- Simplified implementation of Discord AutoMod.',
         '- Reaction roles made easy.',
-        '- Custom commands for your server.',
+        '- Powerful custom commands for your server.',
         '- Games to play with friends!',
         '\nWant me in your server? Click the invite button below!'
       ].join('\n'))

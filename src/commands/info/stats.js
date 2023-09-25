@@ -12,16 +12,21 @@ module.exports = class extends Command {
     });
   }
 
-  async run({ rest, db, response }) {
+  async run({ rest, db, redis, response }) {
     const guilds = (await rest.api.applications('@me').get()).approximate_guild_count;
     const timedActions = (await db.getAllTimedActions()).length;
+
+    const lastCommandUsed = await redis.get('commands:lastUsed');
+    const lastUsed = await redis.get('commands:lastUsedTimestamp');
 
     return response
       .setColour('blue')
       .setTitle('Statistics')
       .setThumbnail(this.core.user.avatarURL)
       .addField('General', stripIndents`**• Servers: **${guilds.toLocaleString()}
-        **• Memory: **${this.convertBytes(process.memoryUsage().rss)}`, true)
+        **• Memory: **${this.convertBytes(process.memoryUsage().rss)}
+        **• Last command used:** \`${lastCommandUsed}\`
+        **• Bot last used:** <t:${lastUsed}:R>`, true)
       .addField('Other', stripIndents`**• Timed actions: **${timedActions.toLocaleString()}
         **• Uptime: **${moment.duration(Date.now() - this.core.startedAt).format('D[d], H[h], m[m], s[s]')}
         **• Version: **${require('../../../package').version}`, true);
