@@ -12,7 +12,7 @@ const nacl = require('tweetnacl');
 const bodyParser = require('body-parser');
 const Redis = require('ioredis');
 const sentry = require('@sentry/node');
-const StatsD = require('hot-shots');
+const Metrics = require('./framework/Metrics');
 
 const Dispatch = require('./framework/Dispatch');
 const RequestHandler = require('./rest/RequestHandler');
@@ -39,7 +39,7 @@ module.exports = class Interactions {
     this.id = id;
     this.app = app;
     this.startedAt = Date.now();
-    this.metrics = new StatsD(config.metrics);
+    this.metrics = new Metrics(config.metrics);
 
     this.redis = new Redis(config.redis);
 

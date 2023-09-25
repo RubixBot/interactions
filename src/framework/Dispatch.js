@@ -131,9 +131,9 @@ module.exports = class Dispatch {
 
       // Command Metrics
       if (!applicationCommand.isDeveloper) {
-        this.core.metrics.histogram('command.duration', Date.now() - startTimestamp, { command: applicationCommand.name });
-        this.core.metrics.histogram('command.latency', latency, { command: applicationCommand.name });
-        this.core.metrics.increment('command.run', { command: applicationCommand.name });
+        this.core.metrics.histogram('commandDuration', Date.now() - startTimestamp, { command: applicationCommand.name });
+        this.core.metrics.histogram('commandLatency', latency, { command: applicationCommand.name });
+        this.core.metrics.counter('commandRun', { command: applicationCommand.name });
       }
 
       if (!context.response.interaction.replied) {
@@ -148,7 +148,7 @@ module.exports = class Dispatch {
     } catch (e) {
       captureException(e);
       this.core.logger.error(e, { src: 'dispatch/handleCommand' });
-      this.core.metrics.histogram('command.error', { command: applicationCommand.name });
+      this.core.metrics.histogram('commandError', { command: applicationCommand.name });
       context.response
         .setEphemeral()
         .setSuccess(false)

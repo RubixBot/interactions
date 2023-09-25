@@ -33,7 +33,7 @@ module.exports = class TimedActions {
     }
 
     this.core.metrics.gauge('guilds', guilds);
-    this.core.metrics.gauge('pending_actions', pendingActions);
+    this.core.metrics.gauge('pendingActions', pendingActions);
   }
 
   // Actions
