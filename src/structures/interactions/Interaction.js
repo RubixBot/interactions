@@ -6,6 +6,7 @@ class Interaction {
 
   constructor (data, cb) {
     this.id = data.id;
+    this.entitlements = data.entitlements;
     this.type = data.type;
     this.data = data.data;
     this.guildID = data.guild_id;

@@ -114,6 +114,14 @@ module.exports = class InteractionResponse {
       .patch(this.toJSON().data);
   }
 
+  /**
+   * Command is premium only
+   */
+  premiumOnly () {
+    this.data.type = InteractionResponseType.PremiumRequired;
+    return this.callback();
+  }
+
   toJSON() {
     return {
       type: this.data.type

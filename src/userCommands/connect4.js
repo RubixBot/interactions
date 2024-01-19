@@ -1,21 +1,17 @@
-const { ApplicationCommandOptionType, ComponentButtonStyle } = require('../../constants/Types');
-const Command = require('../../framework/Command');
+const { ComponentButtonStyle } = require('../constants/Types');
+const UserCommand = require('../framework/UserCommand');
 
-const Game = require('../../modules/connect4/Game');
+const Game = require('../modules/connect4/Game');
 
-module.exports = class extends Command {
+module.exports = class extends UserCommand {
 
   constructor(...args) {
     super(...args, {
-      name: 'connect4',
-      description: 'Invite someone to play connect 4 with you.',
-      options: [
-        { name: 'player', required: true, type: ApplicationCommandOptionType.User, description: 'Player to invite.' }
-      ]
+      name: 'Play Connect4'
     });
   }
 
-  async run({ user, redis, args: { player }, response }) {
+  async run({ user, redis, args: player, response }) {
     if (user.id === player.user.id) {
       return response.setContent('You cannot challenge yourself...').setSuccess(false).setEphemeral();
     } else if (await Game.getGame(redis, user.id)) {

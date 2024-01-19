@@ -1,17 +1,13 @@
 const { ApplicationCommandType } = require('../constants/Types');
 
-class Command {
+class UserCommand {
 
-  constructor (core, init = {}, options = {}) {
+  constructor (core, options = {}) {
     this._core = core;
     this.isDeveloper = options.isDeveloper || false;
     this.name = options.name;
-    this.type = init.type ?? ApplicationCommandType.CHAT_INPUT;
-    this.description = options.description;
-    this.options = options.options || [];
-    this.choices = options.choices || [];
+    this.type = ApplicationCommandType.USER;
     this.permissions = options.permissions || [];
-    this.premiumCommand = options.premiumCommand || false;
   }
 
   get core () {
@@ -21,17 +17,13 @@ class Command {
   toJSON() {
     return {
       name: this.name,
-      type: this.type,
-      description: this.description,
-      options: this.options.map(o => o.toJSON ? o.toJSON() : o),
-      choices: this.choices,
-      isDeveloper: this.isDeveloper
+      type: this.type
     };
   }
 
 }
 
-module.exports = Command;
+module.exports = UserCommand;
 
 /**
  * @type {InteractionResponse}

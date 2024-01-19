@@ -6,7 +6,8 @@ const {
   ApplicationCommandOptionType,
   ComponentType,
   SubCommandTypes,
-  ComponentButtonStyle
+  ComponentButtonStyle,
+  ApplicationCommandType
 } = require('../constants/Types');
 const {
   InteractionButton,
@@ -18,8 +19,9 @@ const {
   Context
 } = require('../structures');
 const { PermissionFlags } = require('../constants/Permissions');
-const { captureException } = require('@sentry/node');
+// const { captureException } = require('@sentry/node');
 const CommandStore = require('./CommandStore');
+const Member = require('../structures/discord/Member');
 
 module.exports = class Dispatch {
 
@@ -72,8 +74,8 @@ module.exports = class Dispatch {
       return this.handleCustomCommand(interaction, customCommand);
     }
 
-    const startTimestamp = Date.now();
-    const latency = Date.now() - interaction.createdTimestamp;
+    // const startTimestamp = Date.now();
+    // const latency = Date.now() - interaction.createdTimestamp;
 
     const topLevelCommand = this.commandStore.get(interaction.name);
     const applicationCommand = this.getSubCommand(interaction, topLevelCommand);
@@ -87,6 +89,17 @@ module.exports = class Dispatch {
     if (args) {
       args.forEach(option => {
         context.args[option.name] = option;
+      });
+    }
+
+    if (topLevelCommand.type === ApplicationCommandType.USER && interaction.data.resolved.members) {
+      Object.keys(interaction.data.resolved.members).forEach(id => {
+        const rawMember = interaction.data.resolved.members[id];
+        const member = new Member({
+          user: interaction.data.resolved.users[id],
+          ...rawMember
+        });
+        context.args = member;
       });
     }
 
@@ -111,6 +124,11 @@ module.exports = class Dispatch {
       return null;
     }
 
+    if (applicationCommand.premiumCommand && !context.premiumInfo) {
+      context.response.premiumOnly();
+      return null;
+    }
+
     // Run the command
     try {
       await applicationCommand.run(context);
@@ -123,9 +141,9 @@ module.exports = class Dispatch {
         } else {
           commandName = `${topLevelCommand.name}.${applicationCommand.name}`;
         }
-        this.core.metrics.histogram('commandDuration', Date.now() - startTimestamp, { command: commandName });
+        /* this.core.metrics.histogram('commandDuration', Date.now() - startTimestamp, { command: commandName });
         this.core.metrics.histogram('commandLatency', latency, { command: commandName });
-        this.core.metrics.counter('commandRun', { command: commandName });
+        this.core.metrics.counter('commandRun', { command: commandName }); */
         await this.core.redis.set('commands:lastUsedTimestamp', Math.floor(Date.now() / 1000));
         await this.core.redis.set('commands:lastUsed', commandName);
       }
@@ -140,9 +158,8 @@ module.exports = class Dispatch {
 
       return null;
     } catch (e) {
-      captureException(e);
-      this.core.logger.error(e, { src: 'dispatch/handleCommand' });
-      this.core.metrics.histogram('commandError', { command: applicationCommand.name });
+      // captureException(e);
+      this.core.logger.error(e, { src: 'dispatch.handleCommand' });
       context.response
         .setEphemeral()
         .setSuccess(false)
@@ -206,7 +223,8 @@ module.exports = class Dispatch {
     let parsedMessage = customCommand.message.replace(/{user}/g, interaction.user.globalName)
       .replace(/{userid}/g, interaction.user.id)
       .replace(/{serverid}/g, interaction.guildID)
-      .replace(/{channelid}/g, interaction.channelID);
+      .replace(/{channelid}/g, interaction.channelID)
+      .replace(/{args}/g, (interaction.options || [])[0] ? interaction.options[0].value : '');
 
     const rolesToAdd = parsedMessage.match(/{addrole:(\d+)}/g);
     rolesToAdd?.forEach((role) => {
@@ -226,11 +244,21 @@ module.exports = class Dispatch {
       parsedMessage = parsedMessage.replace(role, '');
     });
 
-    const choose = parsedMessage.match(/{choose:(.*)}/g);
+    const choose = parsedMessage.match(/{choose:(.*)}/g) || [];
     choose.forEach((replacing) => {
       let options = replacing.replace('{choose:', '').replace('}', '').split('|');
       let chose = options[Math.floor(Math.random() * options.length)];
       parsedMessage = parsedMessage.replace(replacing, chose);
+    });
+
+    const mathAdd = parsedMessage.match(/{add:(.*)}/g) || [];
+    mathAdd.forEach((replacing) => {
+      let [one, two] = replacing.replace('{add:', '').replace('}', '').split('+');
+      let msg = '';
+      if (parseInt(one) && parseInt(two)) {
+        msg = parseInt(one) + parseInt(two);
+      }
+      parsedMessage = parsedMessage.replace(replacing, msg);
     });
 
     return new InteractionResponseMessage()
@@ -266,7 +294,7 @@ module.exports = class Dispatch {
    * @returns {InteractionResponse}
    */
   handleError(error) {
-    captureException(error);
+    // captureException(error);
     this.logger.error(error.stack, { src: 'dispatch/handleError' });
     return new InteractionResponse()
       .setContent('An unexpected error occurred executing this interaction.')

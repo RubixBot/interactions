@@ -85,7 +85,7 @@ module.exports = class RESTHandler {
 
             //  Reject with an APIError or HTTPError
             const rejectWithError = () => {
-              this.logger.error(`Request failed! ${new DiscordAPIError(res).message}`, { src: 'requestHandler/rejectWithError', endpoint });
+              this.logger.error(`Request failed! ${new DiscordAPIError(res)}`, { src: 'requestHandler/rejectWithError', endpoint });
               if (res.data && res.data.errors) {
                 reject(new DiscordAPIError(res));
               } else {

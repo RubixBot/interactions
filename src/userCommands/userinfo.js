@@ -1,24 +1,17 @@
-const { ApplicationCommandOptionType } = require('../../constants/Types');
-const Command = require('../../framework/Command');
-const User = require('../../structures/discord/User');
+const UserCommand = require('../framework/UserCommand');
 const moment = require('moment');
-require('moment-duration-format');
 
-module.exports = class extends Command {
+module.exports = class extends UserCommand {
 
-  constructor(...args) {
+  constructor (...args) {
     super(...args, {
-      name: 'userinfo',
-      description: 'View information about a member.',
-      options: [
-        { name: 'member', description: 'Member to view information of.', type: ApplicationCommandOptionType.User, required: true }
-      ]
+      name: 'User Info'
     });
   }
 
-  async run({ args, rest, response }) {
-    const member = args.member.member;
-    const user = new User(await rest.api.users(args.member.user.id).get());
+  async run ({ response, args }) {
+    const member = args;
+    const user = member.user;
 
     const resp = response
       .setColour('blue')
@@ -36,7 +29,7 @@ module.exports = class extends Command {
     if (user.bannerURL !== '') {
       resp.setImage(user.bannerURL);
     }
-    return resp;
+    return resp.setEphemeral();
   }
 
 };

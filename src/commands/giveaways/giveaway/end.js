@@ -38,7 +38,7 @@ module.exports = class extends Command {
 
     await db.editTimedAction(action._id, { ...action, expires: Date.now() });
     return response
-      .setContent('Giveaway ending shortly!')
+      .setContent('Giveaway is set to end shortly.')
       .setSuccess(true);
   }
 

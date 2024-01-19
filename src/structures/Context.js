@@ -1,5 +1,6 @@
 // Command Context
 
+const { Entitlements } = require('../constants/Types');
 const InteractionResponseMessage = require('../structures/response/InteractionResponseMessage');
 
 module.exports = class Context {
@@ -18,6 +19,10 @@ module.exports = class Context {
 
   get id () {
     return this.interaction.id;
+  }
+
+  get premiumInfo () {
+    return this.interaction.entitlements.filter(entitlement => entitlement.type === Entitlements.ApplicationSubscription)[0];
   }
 
   get token () {
@@ -59,10 +64,5 @@ module.exports = class Context {
   get redis () {
     return this.core.redis;
   }
-
-  get gateway () {
-    return this.core.gatewayClient;
-  }
-
 
 };

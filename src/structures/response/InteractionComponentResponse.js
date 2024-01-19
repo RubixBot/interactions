@@ -89,6 +89,15 @@ class InteractionComponentResponse extends InteractionResponse {
     return this;
   }
 
+  /**
+   * Remove all embeds that have been created.
+   * @returns {InteractionEmbedResponse}
+   */
+  removeAllEmbeds () {
+    this.data.embeds = [];
+    return this;
+  }
+
 }
 
 module.exports = InteractionComponentResponse;

@@ -2,14 +2,14 @@ const Command = require('../../../framework/Command');
 
 module.exports = class extends Command {
 
-  constructor (...args) {
+  constructor(...args) {
     super(...args, {
       name: 'help',
       description: 'View help on how to use custom commands.'
     });
   }
 
-  run ({ response }) {
+  run({ response }) {
     return response
       .setColour('blue')
       .setDescription([
@@ -20,13 +20,15 @@ module.exports = class extends Command {
         'Custom commands also accept certain tags to preform actions. They can be placed anywhere in the output message and will be removed before the message is sent.',
         'Some tags accept an **id**, you can use the `/serverinfo`, `/userinfo`, `/roleinfo` commands to get these ID\'s.',
         'Do not include the **< >** in the tag. Here is a list of tags and what they do:',
+        '- `{args}` - the content entered after the command.',
         '- `{user}` - the name of the user who ran the command',
         '- `{userid}` - the ID of the user who ran the command.',
         '- `{channelid}` - the ID of the channel the command was ran in.',
-        '- `{serverid}` - ID of the server',
+        '- `{serverid}` - the ID of the server the command was ran in',
         '- `{addrole:<id>}` - add a role to the user',
         '- `{removerole:<id>}` - remove a role from the user',
-        '- `{choose:A|B|C}` - choose between A, B or C. Separate with a pipe |'
+        '- `{choose:A|B|C}` - choose between A, B or C. Separate with a pipe |',
+        '- `{add:X|Y}` - add two numbers together. Separate with a plus +'
       ].join('\n'));
   }
 

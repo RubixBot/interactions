@@ -1,6 +1,6 @@
-const { ApplicationCommandOptionType, ComponentType } = require('../../../constants/Types');
+const { ApplicationCommandOptionType } = require('../../../constants/Types');
 const Command = require('../../../framework/Command');
-const { Colours } = require('../../../constants/Colours');
+const Giveaway = require('../../../modules/Giveaway');
 
 module.exports = class extends Command {
 
@@ -18,7 +18,7 @@ module.exports = class extends Command {
     });
   }
 
-  async run({ args: { channel, duration, winners, item }, rest, db, redis, response }) {
+  run ({ args: { channel, duration, winners, item }, response }) {
     duration = this.parseDuration(duration.value);
     if (!duration) {
       return response
@@ -27,51 +27,12 @@ module.exports = class extends Command {
         .setEphemeral();
     }
 
-    const randomID = Date.now();
-
-    let msg;
-    try {
-      msg = await rest.api.channels(channel.channel.id).messages.post({
-        embeds: [{
-          title: `🎉 Giveaway: ${item.value}`,
-          description: `Click the button below to enter!\n**${winners.value}** winner${winners.value > 1 ? 's' : ''}.`,
-          color: Colours.blue,
-          footer: { text: 'Giveaway ending' },
-          timestamp: new Date(Date.now() + duration)
-        }],
-        components: [{
-          type: ComponentType.ActionRow,
-          components: [
-            { type: ComponentType.Button, label: '🎉 Enter Giveaway', custom_id: `command:giveaway.create:enter:${randomID}`, style: 2 }
-          ]
-        }]
-      });
-    } catch (e) {
-      return response
-        .setContent(`I could not create a message in <#${channel.channel.id}>`)
-        .setSuccess(false)
-        .setEphemeral();
-    }
-
-    await db.createTimedAction('giveaway', Date.now() + duration, {
-      id: randomID,
-      channelID: channel.channel.id,
-      messageID: msg.id,
-      item: item.value,
-      winners: winners.value,
-      entrees: []
-    });
-    await redis.set(`components:${randomID}:meta`, JSON.stringify({
-      type: 'giveaway',
-      giveawayID: randomID
-    }));
-
-    return response
-      .setContent('Created giveaway!')
-      .setSuccess(true);
+    return Giveaway.create(this.core, channel.channel, item.value, winners.value, duration)
+      .then(() => response.setContent('Created giveaway!').setSuccess(true))
+      .catch((err) => response.setContent(err.message).setSuccess(false).setEphemeral());
   }
 
-  async onButtonInteraction({ db, response, member }, meta, [_, giveawayID]) {
+  async onButtonInteraction({ db, response, member, core }, __, [_, giveawayID]) {
     const timedActions = await db.getAllTimedActions();
     const timedAction = timedActions.filter(c => c.type === 'giveaway' && c.id === Number(giveawayID))[0];
     if (!timedAction) {
@@ -82,27 +43,10 @@ module.exports = class extends Command {
       return;
     }
 
-    if (timedAction.entrees.includes(member.id)) {
-      timedAction.entrees = timedAction.entrees.filter(e => e !== member.id);
-
-      await db.editTimedAction(timedAction._id, timedAction);
-      response
-        .setContent('You have been removed from this giveaway.')
-        .setSuccess(false)
-        .setEphemeral()
-        .callback();
-      return;
-    } else {
-      timedAction.entrees.push(member.id);
-
-      await db.editTimedAction(timedAction._id, timedAction);
-      response
-        .setContent('You have been entered to this giveaway.')
-        .setSuccess(true)
-        .setEphemeral()
-        .callback();
-      return;
-    }
+    await Giveaway.joinGiveaway(core, member, timedAction)
+      .then(() => response.setContent('You have been entered into the giveaway.').setSuccess(true).setEphemeral().callback())
+      .catch((err) => response.setContent(err.message).setSuccess(false).setEphemeral().callback());
+    return;
   }
 
   parseDuration(input) {

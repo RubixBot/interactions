@@ -7,8 +7,9 @@ module.exports = class Database {
     this._config = config;
   }
 
+  // Connect to the database
   async connect () {
-    const client = await MongoClient.connect(this._config.url, { useUnifiedTopology: true });
+    const client = await MongoClient.connect(this._config.url);
     this.db = client.db();
   }
 
@@ -92,44 +93,13 @@ module.exports = class Database {
     return commands.map((c) => ({ name: c.name, creator: c.creator, message: c.message }));
   }
 
+  getCustomCommandCount (guildID) {
+    return this.db.collection('customCommands').countDocuments({ guildID });
+  }
+
   deleteCustomCommand (guildID, name) {
     return this.db.collection('customCommands').findOneAndDelete({ guildID, name });
   }
-
-
-  // Moderation Log
-  removeGuildCases (guildID) {
-    return this.db.collection('modlog').deleteMany({ guildID });
-  }
-
-  getGuildCases (guildID) {
-    return this.db.collection('modlog').find({ guildID }).toArray();
-  }
-
-  createCase (data) {
-    return this.db.collection('modlog').insertOne(data);
-  }
-
-  getCase (guildID, caseID) {
-    return this.db.collection('modlog').findOne({ _id: `${guildID}.${caseID}` });
-  }
-
-  getUserCases (targetID, guildID) {
-    return this.db.collection('modlog').find({ targetID, guildID }).toArray();
-  }
-
-  updateCase (guildID, caseID, newData) {
-    return this.db.collection('modlog').updateOne({ _id: `${guildID}.${caseID}` }, { $set: newData });
-  }
-
-  deleteCase (guildID, caseID) {
-    return this.db.collection('modlog').findOneAndDelete({ guildID, caseID });
-  }
-
-  getUserWarnings (guildID, targetID) {
-    return this.db.collection('modlog').find({ targetID, guildID, action: 'warn' }).toArray();
-  }
-
 
   _removeID (data) {
     let returning = {};

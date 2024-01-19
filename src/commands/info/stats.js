@@ -1,42 +1,42 @@
 const Command = require('../../framework/Command');
-const { stripIndents } = require('common-tags');
-const moment = require('moment');
-require('moment-duration-format');
 
 module.exports = class extends Command {
 
-  constructor(...args) {
+  constructor (...args) {
     super(...args, {
       name: 'stats',
-      description: 'View statistical information.'
+      description: 'Statistical information about Rubix.'
     });
   }
 
-  async run({ rest, db, redis, response }) {
-    const guilds = (await rest.api.applications('@me').get()).approximate_guild_count;
-    const timedActions = (await db.getAllTimedActions()).length;
+  async run ({ response, rest, db, redis }) {
+    const { approximate_guild_count } = await rest.api.applications('@me').get();
+    const timedActions = (await db.getAllTimedActions()).length.toLocaleString();
+    const connect4 = (await redis.keys('connect4:games:*')).length.toLocaleString();
+    const tod = (await redis.keys('tod:games:*')).length.toLocaleString();
 
     const lastCommandUsed = await redis.get('commands:lastUsed');
     const lastUsed = await redis.get('commands:lastUsedTimestamp');
 
-    return response
-      .setColour('blue')
-      .setTitle('Statistics')
-      .setThumbnail(this.core.user.avatarURL)
-      .addField('General', stripIndents`**• Servers: **${guilds.toLocaleString()}
-        **• Memory: **${this.convertBytes(process.memoryUsage().rss)}
-        **• Last command used:** \`${lastCommandUsed}\`
-        **• Bot last used:** <t:${lastUsed}:R>`, true)
-      .addField('Other', stripIndents`**• Timed actions: **${timedActions.toLocaleString()}
-        **• Uptime: **${moment.duration(Date.now() - this.core.startedAt).format('D[d], H[h], m[m], s[s]')}
-        **• Version: **${require('../../../package').version}`, true);
+    response.setDescription([
+      '### General',
+      `- Approximate Servers: ${approximate_guild_count.toLocaleString()}`,
+      `- Memory Usage: ${this.convertBytes(process.memoryUsage().rss)}`,
+      `- Timed Actions: ${timedActions}`,
+      `- Last Command Used: ${lastCommandUsed} (<t:${lastUsed}:R>)`,
+
+      '### Games',
+      `- Connect 4: ${connect4}`,
+      `- Truth or Dare: ${tod}`
+    ].join('\n'))
+      .setFooter(`Rubix v${require('../../../package').version}`);
   }
 
-  convertBytes(bytes) {
+  convertBytes (bytes) {
     let sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    if (bytes === 0) return 'n/a';
+    if (bytes === 0) return '0';
     let by = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
-    if (by === 0) return `${bytes} ${sizes[by]}`;
+    if (by === 0) return `${bytes}${sizes[by]}`;
     return `${(bytes / Math.pow(1024, by)).toFixed(1)}${sizes[by]}`;
 
   }

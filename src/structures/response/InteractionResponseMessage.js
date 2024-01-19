@@ -179,7 +179,6 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
     return this;
   }
 
-
   toJSON() {
     const result = {
       ...super.toJSON(),
