@@ -1,5 +1,5 @@
 const InteractionResponse = require('./InteractionResponse');
-const { ComponentType, ComponentButtonStyle } = require('../../constants/Types');
+const { ComponentType, ComponentButtonStyle, TextInputStyle } = require('../../constants/Types');
 
 class InteractionComponentResponse extends InteractionResponse {
 
@@ -77,6 +77,37 @@ class InteractionComponentResponse extends InteractionResponse {
     };
     this.data.components[this.data.components.length - 1].components.push(button);
 
+    return this;
+  }
+
+  addShortTextInput ({ label, customID, required, placeholder }) {
+    if (!this.data.components.length) {
+      this.addActionRow();
+    }
+
+    this.data.components[this.data.components.length - 1].components.push({
+      type: ComponentType.TextInput,
+      style: TextInputStyle.Short,
+      label,
+      custom_id: customID,
+      required: required ?? false,
+      placeholder
+    });
+    return this;
+  }
+
+  addLongTextInput ({ label, customID, required, placeholder }) {
+    if (!this.data.components.length) {
+      this.addActionRow();
+    }
+
+    this.data.components[this.data.components.length - 1].components.push({
+      type: ComponentType.TextInput,
+      style: TextInputStyle.Paragraph,
+      label, customID,
+      required: required ?? false,
+      placeholder
+    });
     return this;
   }
 

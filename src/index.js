@@ -35,6 +35,7 @@ class Interactions {
     this.logger = logger;
     this.app = app;
     this.startedAt = Date.now();
+    this.isBeta = process.env.PROD !== 'true';
 
     this.redis = new Redis(config.redis);
 

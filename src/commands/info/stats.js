@@ -14,6 +14,7 @@ module.exports = class extends Command {
     const timedActions = (await db.getAllTimedActions()).length.toLocaleString();
     const connect4 = (await redis.keys('connect4:games:*')).length.toLocaleString();
     const tod = (await redis.keys('tod:games:*')).length.toLocaleString();
+    const inco = (await redis.keys('inco:games:*')).length.toLocaleString();
 
     const lastCommandUsed = await redis.get('commands:lastUsed');
     const lastUsed = await redis.get('commands:lastUsedTimestamp');
@@ -27,9 +28,11 @@ module.exports = class extends Command {
 
       '### Games',
       `- Connect 4: ${connect4}`,
-      `- Truth or Dare: ${tod}`
+      `- Truth or Dare: ${tod}`,
+      `- Incohearant: ${inco}`
     ].join('\n'))
-      .setFooter(`Rubix v${require('../../../package').version}`);
+      .setFooter(`Rubix ${this.core.isBeta ? 'Beta ' : ''}v${require('../../../package').version}`)
+      .setThumbnail(this.core.user.avatarURL);
   }
 
   convertBytes (bytes) {

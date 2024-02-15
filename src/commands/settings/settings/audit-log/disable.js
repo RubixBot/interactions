@@ -10,11 +10,11 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ response, settings, args: { channel: { channel } } }) {
+  async run ({ response, settings }) {
     settings.remove('audit_log_channel');
     await settings.save();
 
-    response.setContent(`Audit log entries will now be sent to <#${channel.id}>.`)
+    response.setContent(`Audit log entries will no longer be sent.`)
       .setSuccess(true);
   }
 

@@ -16,6 +16,7 @@ const {
   InteractionResponseMessage,
   InteractionSelect,
   InteractionAutocomplete,
+  InteractionModal,
   Context
 } = require('../structures');
 const { PermissionFlags } = require('../constants/Permissions');
@@ -59,6 +60,11 @@ module.exports = class Dispatch {
       case InteractionType.ApplicationCommandAutocomplete:
         return this.handleAutocomplete(new InteractionAutocomplete(data, cb))
           .catch(this.handleError.bind(this));
+
+      case InteractionType.ModalSubmit: {
+        return this.handleModal(new InteractionModal(data, cb))
+          .catch(this.handleError.bind(this));
+      }
 
       default:
         this.logger.warn(`Unknown interaction type "${data.type}" received`, { src: 'dispatch/handleInteraction' });
@@ -114,8 +120,15 @@ module.exports = class Dispatch {
       return null;
     }
 
+    let commandName = '';
+    if (topLevelCommand.name === applicationCommand.name) {
+      commandName = applicationCommand.name;
+    } else {
+      commandName = `${topLevelCommand.name}.${applicationCommand.name}`;
+    }
+
     //  Check for a global command
-    const disabled = await this.core.redis.get(`commands:${applicationCommand.name}:disabled`);
+    const disabled = await this.core.redis.get(`commands:${commandName}:disabled`) || await this.core.redis.get(`commands:${topLevelCommand.name}:disabled`);
     if (disabled && disabled !== 'no') {
       context.response
         .setDescription(`This command is disabled.\n**Reason:** ${disabled}`)
@@ -124,7 +137,7 @@ module.exports = class Dispatch {
       return null;
     }
 
-    if (applicationCommand.premiumCommand && !context.premiumInfo) {
+    if (applicationCommand.premiumCommand && !context.premiumInfo && !this.core.isBeta) {
       context.response.premiumOnly();
       return null;
     }
@@ -135,12 +148,6 @@ module.exports = class Dispatch {
 
       // Command Metrics
       if (!applicationCommand.isDeveloper) {
-        let commandName = '';
-        if (topLevelCommand.name === applicationCommand.name) {
-          commandName = applicationCommand.name;
-        } else {
-          commandName = `${topLevelCommand.name}.${applicationCommand.name}`;
-        }
         /* this.core.metrics.histogram('commandDuration', Date.now() - startTimestamp, { command: commandName });
         this.core.metrics.histogram('commandLatency', latency, { command: commandName });
         this.core.metrics.counter('commandRun', { command: commandName }); */
@@ -159,7 +166,10 @@ module.exports = class Dispatch {
       return null;
     } catch (e) {
       // captureException(e);
-      this.core.logger.error(e, { src: 'dispatch.handleCommand' });
+      await this.core.rest.api.channels(this.core.config.errorLog).messages.post({
+        content: `\`\`\`js\n${e.stack}\n\`\`\``
+      });
+      this.core.logger.error(e.stack, { src: 'dispatch.handleCommand' });
       context.response
         .setEphemeral()
         .setSuccess(false)
@@ -217,6 +227,44 @@ module.exports = class Dispatch {
 
     const result = await applicationCommand.handleAutocomplete(options, data);
     return { type: InteractionResponseType.ApplicationCommandAutocompleteResult, data: { choices: result } };
+  }
+
+  async handleModal (interaction) {
+    const context = new Context(this.core, null, interaction);
+
+    let metadata;
+    const [type, ...params] = interaction.customID.split(':');
+    if (type === 'command' || type === 'public') {
+      const [command, subCommand] = params.splice(0, 1)[0].split('.');
+      metadata = {
+        type: 'command',
+        command,
+        subCommand
+      };
+    }
+
+    if (!metadata) return null;
+
+    try {
+      switch (metadata.type) {
+        case 'command': {
+          let command = this.core.dispatch.commandStore.get(metadata.command);
+          if (metadata.subCommand) {
+            command = command.options.find(option => option.name === metadata.subCommand);
+          }
+
+          if (command?.onModalSubmit) {
+            await command.onModalSubmit(context, metadata, params);
+          }
+          break;
+        }
+      }
+    } catch (error) {
+      // await this._onError(error, context);
+      console.log(error);
+    }
+
+    return null;
   }
 
   async handleCustomCommand (interaction, customCommand) {

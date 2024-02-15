@@ -15,6 +15,11 @@ module.exports = class InteractionResponse {
     return new InteractionResponseMessage(this.core, this.interaction);
   }
 
+  newModalResponse() {
+    const InteractionResponseModal = require('./InteractionResponseModal');
+    return new InteractionResponseModal(this.core, this.interaction);
+  }
+
   reset() {
     this.data = {};
   }
