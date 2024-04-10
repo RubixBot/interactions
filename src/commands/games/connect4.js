@@ -1,7 +1,7 @@
 const { ApplicationCommandOptionType, ComponentButtonStyle } = require('../../constants/Types');
 const Command = require('../../framework/Command');
 
-const Game = require('../../modules/connect4/Game');
+const Game = require('../../modules/games/connect4/Game');
 
 module.exports = class extends Command {
 
@@ -42,11 +42,10 @@ module.exports = class extends Command {
       case 'confirmGame': {
         if (await Game.isPending(ctx.redis, player1) && player2 === ctx.user.id) {
           await Game.deletePendingGame(ctx.redis, player1);
-          await Game.createGame(ctx, player1, player2);
+          return Game.createGame(ctx, player1, player2);
         } else {
           return null;
         }
-        break;
       }
 
       case 'declineGame': {
@@ -64,7 +63,7 @@ module.exports = class extends Command {
       case 'number': {
         ctx.response.update();
         const state = await Game.getState(ctx.redis, player1);
-        await Game.addPiece(ctx, state, number - 1, state.nextPlayer);
+        Game.addPiece(ctx, state, number - 1, state.nextPlayer);
         break;
       }
     }

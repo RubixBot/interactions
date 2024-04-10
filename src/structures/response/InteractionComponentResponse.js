@@ -39,20 +39,52 @@ class InteractionComponentResponse extends InteractionResponse {
     return this;
   }
 
-  /**
-   * Add a select menu.
-   * @param {SelectMenu} selectMenu Options for select menu
-   * @returns {InteractionResponse}
-   */
-  addSelectMenu(selectMenu) {
-    if (!this.data.components.length) {
-      this.addActionRow();
-    }
-
-    selectMenu = { ...selectMenu, type: ComponentType.SelectMenu };
-    this.data.components[this.components.length - 1].components.push(selectMenu);
-
-    return this;
+  addTextSelect ({ long = false, customID, options, placeholder, disabled, min, max }) {
+    return this._addSelectMenu(long ? TextInputStyle.Paragraph : TextInputStyle.Short, {
+      custom_id: customID,
+      options,
+      placeholder,
+      disabled,
+      min_values: min,
+      max_values: max
+    });
+  }
+  addUserSelect ({ customID, placeholder, disabled, min, max }) {
+    return this._addSelectMenu(ComponentType.UserSelect, {
+      custom_id: customID,
+      placeholder,
+      disabled,
+      min_values: min,
+      max_values: max
+    });
+  }
+  addRoleSelect ({ customID, placeholder, disabled, min, max }) {
+    return this._addSelectMenu(ComponentType.RoleSelect, {
+      custom_id: customID,
+      placeholder,
+      disabled,
+      min_values: min,
+      max_values: max
+    });
+  }
+  addMentionableSelect ({ customID, placeholder, disabled, min, max }) {
+    return this._addSelectMenu(ComponentType.MentionableSelect, {
+      custom_id: customID,
+      placeholder,
+      disabled,
+      min_values: min,
+      max_values: max
+    });
+  }
+  addChannelSelect ({ customID, placeholder, disabled, channelTypes, min, max }) {
+    return this._addSelectMenu(ComponentType.UserSelect, {
+      custom_id: customID,
+      placeholder,
+      disabled,
+      channel_types: channelTypes,
+      min_values: min,
+      max_values: max
+    });
   }
 
   /**
@@ -126,6 +158,18 @@ class InteractionComponentResponse extends InteractionResponse {
    */
   removeAllEmbeds () {
     this.data.embeds = [];
+    return this;
+  }
+
+  // Select Menu
+  _addSelectMenu(type, selectMenu) {
+    if (!this.data.components.length) {
+      this.addActionRow();
+    }
+
+    selectMenu = { ...selectMenu, type };
+    this.data.components[this.data.components.length - 1].components.push(selectMenu);
+
     return this;
   }
 

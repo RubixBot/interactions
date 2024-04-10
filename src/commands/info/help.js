@@ -15,7 +15,10 @@ module.exports = class extends Command {
       .setDescription(['### Rubix',
         `Hello ${user.globalName}! Thank you for using Rubix, a fun-packed Discord bot to liven up your server!`,
         'To view a list of my commands, type `/` and click on my avatar. Some features include:\n',
-        '- Wide variety of games to play with friends!',
+        '- Server wide levelling system.',
+        '- Handy moderation functions.',
+        '- Frequent new features!',
+        '- Wide variety of multi-player games to play with friends!',
         '\nWant me in your server? Click the invite button below!'
       ].join('\n'))
       .addButton({ label: 'Invite Me', url: `https://discord.com/api/oauth2/authorize?client_id=${this.core.config.applicationID}&scope=bot%20applications.commands` })

@@ -101,6 +101,32 @@ module.exports = class Database {
     return this.db.collection('customCommands').findOneAndDelete({ guildID, name });
   }
 
+  /* Experience Handler */
+  getUserXP (guild_id, user_id) {
+    return this.db.collection('levels').findOne({ guild_id, user_id });
+  }
+
+  getTotalRanks (guild_id) {
+    return this.db.collection('levels').countDocuments({ guild_id });
+  }
+
+  getGuildLeaderboard (guild_id) {
+    return this.db.collection('levels').find({ guild_id }, { $sort: { experience: 1 } }).toArray();
+  }
+
+  async getRankPosition (guild_id, user_id) {
+    return (await this.getGuildLeaderboard(guild_id)).map(s => s.user_id).indexOf(user_id) + 1;
+  }
+
+  resetUserXP (guild_id, user_id) {
+    return this.db.collection('levels').updateOne({ guild_id, user_id }, { $set: { experience: 0 } }, { $upsert: true });
+  }
+
+  resetServerXP (guild_id) {
+    return this.db.collection('levels').updateMany({ guild_id }, { $set: { experience: 0 } }, { $upsert: true });
+  }
+
+
   _removeID (data) {
     let returning = {};
     Object.keys(data).forEach(key => {
@@ -124,7 +150,13 @@ class GuildSettings {
   }
 
   set (key, value) {
-    this.data[key] = value;
+    if (!value && typeof key !== 'string') {
+      Object.keys(key).forEach(a => {
+        this.data[a] = key[a];
+      });
+    } else {
+      this.data[key] = value;
+    }
   }
 
   remove (key) {

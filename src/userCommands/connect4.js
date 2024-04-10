@@ -1,7 +1,7 @@
 const { ComponentButtonStyle } = require('../constants/Types');
 const UserCommand = require('../framework/UserCommand');
 
-const Game = require('../modules/connect4/Game');
+const Game = require('../modules/games/connect4/Game');
 
 module.exports = class extends UserCommand {
 

@@ -1,6 +1,6 @@
 // Truth or Dare Game Handler
 
-const { ComponentButtonStyle } = require('../constants/Types');
+const { ComponentButtonStyle } = require('../../constants/Types');
 const questions = require('./gameFiles/tod');
 
 module.exports = class TruthOrDare {

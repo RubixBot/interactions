@@ -66,7 +66,7 @@ module.exports = class InteractionResponse {
   }
 
   async _callback(data) {
-    const fn = this.interaction.respond;
+    const fn = null;
     if (fn && (!this.interaction.deferred || this.data.type === InteractionResponseType.AcknowledgeWithSource)) {
       fn(data);
       return null;
@@ -74,7 +74,7 @@ module.exports = class InteractionResponse {
       return await this.core.rest.api
         .interactions(this.interaction.id)(this.interaction.token)
         .callback()
-        .post(data);
+        .post(data, {}, data.files);
     }
   }
 
@@ -83,10 +83,11 @@ module.exports = class InteractionResponse {
    * @param [token] Optional token to edit a different message
    */
   async editOriginal(token) {
-    return await this.core.rest.api
+    const resp = await this.core.rest.api
       .webhooks(this.core.config.applicationID)(token || this.interaction?.token)
       .messages('@original')
-      .patch(this.toJSON().data);
+      .patch(this.toJSON().data, {}, this.toJSON().files);
+    return resp;
   }
 
   /**
@@ -106,7 +107,7 @@ module.exports = class InteractionResponse {
   async createFollowupMessage(token) {
     return await this.core.rest.api
       .webhooks(this.core.config.applicationID)(token || this.interaction?.token)
-      .post(this.toJSON().data);
+      .post(this.toJSON().data, {}, this.toJSON().files);
   }
 
   /**
@@ -116,7 +117,7 @@ module.exports = class InteractionResponse {
     return await this.core.rest.api
       .webhooks(this.core.config.applicationID)(this.interaction.token)
       .messages(messageId)
-      .patch(this.toJSON().data);
+      .patch(this.toJSON().data, {}, this.toJSON().files);
   }
 
   /**
@@ -129,7 +130,7 @@ module.exports = class InteractionResponse {
 
   toJSON() {
     return {
-      type: this.data.type
+      type: InteractionResponseType.ChannelMessageWithSource
     };
   }
 

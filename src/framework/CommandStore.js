@@ -23,12 +23,21 @@ module.exports = class CommandStore extends Map {
     this.userCommands = fs.readdirSync(path.resolve('src', 'userCommands'))
       .filter(file => !file.startsWith('_'));
 
+    this.messageCommands = fs.readdirSync(path.resolve('src', 'messageCommands'))
+      .filter(file => !file.startsWith('_'));
+
     for (let category of this.categories) {
       this.registerCategory(category);
     }
 
     for (let userCommand of this.userCommands) {
       const Command = require(path.resolve('src', 'userCommands', userCommand));
+      const command = new Command(this.core);
+      this.set(command.name, command);
+    }
+
+    for (let messageCommand of this.messageCommands) {
+      const Command = require(path.resolve('src', 'messageCommands', messageCommand));
       const command = new Command(this.core);
       this.set(command.name, command);
     }

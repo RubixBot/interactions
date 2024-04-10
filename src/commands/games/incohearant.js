@@ -1,8 +1,8 @@
 const { ApplicationCommandOptionType, ComponentButtonStyle } = require('../../constants/Types');
 const Command = require('../../framework/Command');
 
-const Game = require('../../modules/Incohearant');
-const words = require('../../modules/gameFiles/incohearant.json');
+const Game = require('../../modules/games/Incohearant');
+const words = require('../../modules/games/gameFiles/incohearant.json');
 
 module.exports = class extends Command {
 

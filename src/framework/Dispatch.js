@@ -24,12 +24,58 @@ const { PermissionFlags } = require('../constants/Permissions');
 const CommandStore = require('./CommandStore');
 const Member = require('../structures/discord/Member');
 
+const nacl = require('tweetnacl');
+
 module.exports = class Dispatch {
 
   constructor(core, logger) {
     this.logger = logger;
     this.core = core;
     this.commandStore = new CommandStore(core);
+  }
+
+  async registerRoutes() {
+    this.core.app.post('/', this.verifySignature.bind(this), async (req, res) => {
+      if (req.body.type === InteractionType.Ping) {
+        res.status(200).json({ type: InteractionResponseType.Pong });
+        return;
+      }
+
+      const cb = (data) => res.json(data);
+
+      const result = await this.handleInteraction(req.body, cb);
+      if (result && result.replied) {
+        cb();
+        return;
+      } else if (result && result.type) {
+        cb(result);
+        return;
+      } else {
+        setTimeout(() => cb(), 2500);
+        return;
+      }
+    });
+  }
+
+  verifySignature(req, res, next) {
+    const signature = req.header('X-Signature-Ed25519');
+    const timestamp = req.header('X-Signature-Timestamp');
+
+    if (!signature || !timestamp) {
+      return res.status(401).json({ error: 'Unauthorised' });
+    }
+
+    const sig = nacl.sign.detached.verify(
+      Buffer.from(timestamp + JSON.stringify(req.body)),
+      Buffer.from(signature, 'hex'),
+      Buffer.from(this.core.config.publicKey, 'hex')
+    );
+
+    if (!sig) {
+      return res.status(401).json({ error: 'Unauthorised' });
+    }
+
+    return next();
   }
 
   async handleInteraction(data, cb) {

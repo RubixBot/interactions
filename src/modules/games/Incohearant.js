@@ -1,6 +1,6 @@
 // Incohearant Game Handler
 
-const { ComponentButtonStyle } = require('../constants/Types');
+const { ComponentButtonStyle } = require('../../constants/Types');
 const words = require('./gameFiles/incohearant');
 
 module.exports = class Incohearant {

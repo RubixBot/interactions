@@ -1,5 +1,5 @@
 // Taken and modified from https://github.com/sergiocruz/react-connect4/
-const { ComponentButtonStyle } = require('../../constants/Types');
+const { ComponentButtonStyle } = require('../../../constants/Types');
 const matches = require('./matches');
 
 module.exports = class Game {
@@ -112,7 +112,12 @@ module.exports = class Game {
 
         // Send game over message
         await ctx.response.setColour('blue')
-          .setDescription(`## GAME OVER\n${this.buildGrid(state.grid)}`)
+          .setDescription([
+            '## Game Over!',
+            `🔴 - <@${state.redID}>`,
+            `🔵 - <@${state.blueID}>\n`,
+            this.buildGrid(state.grid)
+          ].join('\n'))
           .removeAllComponents()
           .editOriginal(state.interactionToken);
       } else {
@@ -125,7 +130,7 @@ module.exports = class Game {
           inserts: state.inserts,
           nextPlayer: refreshPlayer(state.inserts),
           isActive: true,
-          interactionToken: ctx.response.interaction.token,
+          interactionToken: state.interactionToken,
 
           redID: state.redID,
           blueID: state.blueID
@@ -138,9 +143,9 @@ module.exports = class Game {
   static async sendResponse(response, state) {
     const resp = response
       .setColour('blue')
-      .setDescription([
+      .setDescription(
         `### Current Turn: ${refreshPlayer(state.inserts) === '🔴' ? `<@${state.redID}>` : `<@${state.blueID}>`}\n${this.buildGrid(state.grid)}`
-      ]);
+      );
 
     [1, 2, 3, 4, 5, 6, 7].forEach((num) => {
       if (num === 5) {
@@ -165,6 +170,7 @@ module.exports = class Game {
       inserts: game.inserts,
       nextPlayer: refreshPlayer(game.inserts),
       isActive: game.isActive,
+      interactionToken: game.interactionToken,
 
       redID: game.redID,
       blueID: game.blueID
