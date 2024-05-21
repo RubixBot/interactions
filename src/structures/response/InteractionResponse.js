@@ -66,7 +66,7 @@ module.exports = class InteractionResponse {
   }
 
   async _callback(data) {
-    const fn = null;
+    const fn = this.interaction.respond;
     if (fn && (!this.interaction.deferred || this.data.type === InteractionResponseType.AcknowledgeWithSource)) {
       fn(data);
       return null;
