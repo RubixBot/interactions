@@ -1,10 +1,7 @@
 const sentry = require('@sentry/node');
-let config;
-if (process.env.PROD === 'true') {
-  config = require('../../config');
-}
+const config = process.env.PROD ? require('../../config.json') : require('../../config.dev');
 
-if (config && config.sentry) {
+if (config.sentry) {
   sentry.init({
     dsn: config.sentry,
     // Performance Monitoring

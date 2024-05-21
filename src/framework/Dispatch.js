@@ -1,5 +1,3 @@
-// Command Dispatcher
-
 const {
   InteractionType,
   InteractionResponseType,
@@ -9,6 +7,7 @@ const {
   ComponentButtonStyle,
   ApplicationCommandType
 } = require('../constants/Types');
+
 const {
   InteractionButton,
   InteractionCommand,
@@ -19,11 +18,10 @@ const {
   InteractionModal,
   Context
 } = require('../structures');
+
 const { PermissionFlags } = require('../constants/Permissions');
-// const { captureException } = require('@sentry/node');
 const CommandStore = require('./CommandStore');
 const Member = require('../structures/discord/Member');
-
 const nacl = require('tweetnacl');
 
 module.exports = class Dispatch {
@@ -84,34 +82,26 @@ module.exports = class Dispatch {
         return {
           type: InteractionResponseType.Pong
         };
-
       case InteractionType.ApplicationCommand:
         return this.handleCommand(new InteractionCommand(data, cb))
           .catch(this.handleError.bind(this));
-
       case InteractionType.MessageComponent:
         switch (data.data.component_type) {
           case ComponentType.Button:
             return this.handleComponent(new InteractionButton(data, cb))
               .catch(this.handleError.bind(this));
-
           case ComponentType.SelectMenu:
             return this.handleComponent(new InteractionSelect(data, cb))
               .catch(this.handleError.bind(this));
-
           default:
             return null;
         }
-
       case InteractionType.ApplicationCommandAutocomplete:
         return this.handleAutocomplete(new InteractionAutocomplete(data, cb))
           .catch(this.handleError.bind(this));
-
-      case InteractionType.ModalSubmit: {
+      case InteractionType.ModalSubmit:
         return this.handleModal(new InteractionModal(data, cb))
           .catch(this.handleError.bind(this));
-      }
-
       default:
         this.logger.warn(`Unknown interaction type "${data.type}" received`, { src: 'dispatch/handleInteraction' });
         return {};

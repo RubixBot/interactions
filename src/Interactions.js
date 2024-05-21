@@ -1,35 +1,28 @@
 // Import correct configuration file
 const sentry = require('./utils/instrument');
-let config;
-if (process.env.PROD === 'true') {
-  config = require('../config');
-} else {
-  config = require('../config.dev');
-}
-
-// Import required modules
-const app = require('express')();
+const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const Redis = require('ioredis');
 const Sentry = require('@sentry/node');
 
 const Dispatch = require('./framework/Dispatch');
 const Database = require('./framework/Database');
-const Redis = require('ioredis');
 const TimedActions = require('./modules/TimedActions');
 const Levelling = require('./modules/Levelling');
 const RequestHandler = require('./rest/RequestHandler');
 const { User } = require('./structures/discord');
 
-// Core interactions class
-module.exports = class Interactions {
+const config = process.env.PROD ? require('../config.json') : require('../config.dev');
+
+class Interactions {
 
   constructor(logger) {
     this.config = config;
     this.logger = logger;
-    this.app = app;
+    this.app = express();
     this.startedAt = Date.now();
-    this.isBeta = process.env.PROD !== 'true';
+    this.isBeta = !!process.env.PROD;
 
     this.redis = new Redis(config.redis);
 
@@ -43,7 +36,7 @@ module.exports = class Interactions {
 
   // Start the interactions service
   async start () {
-    this.logger.info('starting up', { src: 'core.start' });
+    this.logger.info('starting up', { src: 'core.start', prod: process.env.PROD });
     await this.database.connect();
 
     if (sentry) {
@@ -66,4 +59,6 @@ module.exports = class Interactions {
     return this.app;
   }
 
-};
+}
+
+module.exports = Interactions;
