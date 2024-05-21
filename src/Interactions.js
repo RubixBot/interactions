@@ -1,4 +1,5 @@
 // Import correct configuration file
+const sentry = require('./utils/instrument');
 let config;
 if (process.env.PROD === 'true') {
   config = require('../config');
@@ -10,6 +11,7 @@ if (process.env.PROD === 'true') {
 const app = require('express')();
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const Sentry = require('@sentry/node');
 
 const Dispatch = require('./framework/Dispatch');
 const Database = require('./framework/Database');
@@ -44,6 +46,10 @@ module.exports = class Interactions {
     this.logger.info('starting up', { src: 'core.start' });
     await this.database.connect();
 
+    if (sentry) {
+      Sentry.setupExpressErrorHandler(this.app);
+    }
+
     // Get current user
     this.user = new User(await this.rest.api.users(this.config.applicationID).get());
 
@@ -56,6 +62,8 @@ module.exports = class Interactions {
     this.dispatch.commandStore.updateCommandList();
     this.timedActions.start();
     this.logger.info('ready', { port: this.config.port, src: 'core.start' });
+
+    return this.app;
   }
 
 };

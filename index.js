@@ -1,20 +1,7 @@
-// Connect to the gateway and start up the interactions server.
-let config;
-if (process.env.DEV === 'true') {
-  config = require('./config.dev');
-} else {
-  config = require('./config');
-}
+require('./src/utils/instrument');
 
 const Interactions = require('./src/Interactions');
 const winston = require('winston');
-const sentry = require('@sentry/node');
-
-if (config.sentry) {
-  sentry.init({
-    dsn: config.sentry
-  });
-}
 
 // Create a logger
 const logger = winston.createLogger({

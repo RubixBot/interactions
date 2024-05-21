@@ -199,6 +199,7 @@ module.exports = class Dispatch {
         this.core.metrics.counter('commandRun', { command: commandName }); */
         await this.core.redis.set('commands:lastUsedTimestamp', Math.floor(Date.now() / 1000));
         await this.core.redis.set('commands:lastUsed', commandName);
+        await this.core.redis.set(`commands:used:${commandName}:${Date.now()}`, 1, 'EX', 86400);
       }
 
       if (!context.response.interaction.replied) {

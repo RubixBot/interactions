@@ -17,6 +17,7 @@ module.exports = class extends Command {
     const inco = (await redis.keys('inco:games:*')).length.toLocaleString();
 
     const lastCommandUsed = await redis.get('commands:lastUsed');
+    const commandsUsed = (await redis.keys('commands:used:*')).length;
     const lastUsed = await redis.get('commands:lastUsedTimestamp');
 
     response.setDescription([
@@ -25,6 +26,7 @@ module.exports = class extends Command {
       `- Memory Usage: ${this.convertBytes(process.memoryUsage().rss)}`,
       `- Timed Actions: ${timedActions}`,
       `- Last Command Used: ${lastCommandUsed} (<t:${lastUsed}:R>)`,
+      `- Commands used (last 24h): ${commandsUsed.toLocaleString()}`,
 
       '### Games',
       `- Connect 4: ${connect4}`,
