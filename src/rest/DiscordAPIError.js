@@ -4,7 +4,7 @@
  */
 module.exports = class DiscordAPIError extends Error {
 
-  constructor (res) {
+  constructor(res) {
     super();
     const flattened = this.constructor.flattenErrors(res.data.errors || res.data.message).join('\n');
     this.name = 'DiscordAPIError';
@@ -30,7 +30,7 @@ module.exports = class DiscordAPIError extends Error {
    * @returns {string[]}
    * @private
    */
-  static flattenErrors (obj, key = '') {
+  static flattenErrors(obj, key = '') {
     let messages = [];
 
     for (const [k, v] of Object.entries(obj)) {

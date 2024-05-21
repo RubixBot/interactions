@@ -1,4 +1,4 @@
-const { avatarURL, defaultAvatarURL, avatarURLSize, bannerURL } = require('../../constants/Endpoints');
+const { avatarURL, defaultAvatarURL } = require('../../constants/Endpoints');
 
 class User {
 
@@ -20,16 +20,8 @@ class User {
     return this.avatar ? avatarURL(this.id, this.avatar) : this.defaultAvatarURL;
   }
 
-  customAvatarURL (size) {
-    return this.avatar ? avatarURLSize(this.id, this.avatar, size) : `${this.defaultAvatarURL}?size=${size}`;
-  }
-
   get defaultAvatarURL () {
     return defaultAvatarURL(this.discriminator);
-  }
-
-  get bannerURL () {
-    return this.bannerHash ? bannerURL(this.id, this.bannerHash) : '';
   }
 
 }

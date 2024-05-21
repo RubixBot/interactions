@@ -7,8 +7,9 @@ module.exports = class Database {
     this._config = config;
   }
 
+  // Connect to the database
   async connect () {
-    const client = await MongoClient.connect(this._config.url, { useUnifiedTopology: true });
+    const client = await MongoClient.connect(this._config.url);
     this.db = client.db();
   }
 
@@ -92,42 +93,37 @@ module.exports = class Database {
     return commands.map((c) => ({ name: c.name, creator: c.creator, message: c.message }));
   }
 
+  getCustomCommandCount (guildID) {
+    return this.db.collection('customCommands').countDocuments({ guildID });
+  }
+
   deleteCustomCommand (guildID, name) {
     return this.db.collection('customCommands').findOneAndDelete({ guildID, name });
   }
 
-
-  // Moderation Log
-  removeGuildCases (guildID) {
-    return this.db.collection('modlog').deleteMany({ guildID });
+  /* Experience Handler */
+  getUserXP (guild_id, user_id) {
+    return this.db.collection('levels').findOne({ guild_id, user_id });
   }
 
-  getGuildCases (guildID) {
-    return this.db.collection('modlog').find({ guildID }).toArray();
+  getTotalRanks (guild_id) {
+    return this.db.collection('levels').countDocuments({ guild_id });
   }
 
-  createCase (data) {
-    return this.db.collection('modlog').insertOne(data);
+  getGuildLeaderboard (guild_id) {
+    return this.db.collection('levels').find({ guild_id }, { $sort: { experience: 1 } }).toArray();
   }
 
-  getCase (guildID, caseID) {
-    return this.db.collection('modlog').findOne({ _id: `${guildID}.${caseID}` });
+  async getRankPosition (guild_id, user_id) {
+    return (await this.getGuildLeaderboard(guild_id)).map(s => s.user_id).indexOf(user_id) + 1;
   }
 
-  getUserCases (targetID, guildID) {
-    return this.db.collection('modlog').find({ targetID, guildID }).toArray();
+  resetUserXP (guild_id, user_id) {
+    return this.db.collection('levels').updateOne({ guild_id, user_id }, { $set: { experience: 0 } }, { $upsert: true });
   }
 
-  updateCase (guildID, caseID, newData) {
-    return this.db.collection('modlog').updateOne({ _id: `${guildID}.${caseID}` }, { $set: newData });
-  }
-
-  deleteCase (guildID, caseID) {
-    return this.db.collection('modlog').findOneAndDelete({ guildID, caseID });
-  }
-
-  getUserWarnings (guildID, targetID) {
-    return this.db.collection('modlog').find({ targetID, guildID, action: 'warn' }).toArray();
+  resetServerXP (guild_id) {
+    return this.db.collection('levels').updateMany({ guild_id }, { $set: { experience: 0 } }, { $upsert: true });
   }
 
 
@@ -154,7 +150,13 @@ class GuildSettings {
   }
 
   set (key, value) {
-    this.data[key] = value;
+    if (!value && typeof key !== 'string') {
+      Object.keys(key).forEach(a => {
+        this.data[a] = key[a];
+      });
+    } else {
+      this.data[key] = value;
+    }
   }
 
   remove (key) {

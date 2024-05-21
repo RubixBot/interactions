@@ -11,6 +11,7 @@ class Command {
     this.options = options.options || [];
     this.choices = options.choices || [];
     this.permissions = options.permissions || [];
+    this.premiumCommand = options.premiumCommand || false;
   }
 
   get core () {

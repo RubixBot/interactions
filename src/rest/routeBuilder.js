@@ -6,7 +6,7 @@ module.exports = (manager) => {
   const handler = {
     get (target, name) {
       if (methods.includes(name)) {
-        return (data = {}, query = {}) => manager.request(name, route.join('/'), data, query);
+        return (data = {}, query = {}, file = null) => manager.request(name, route.join('/'), data, query, file);
       }
       route.push(name);
       return new Proxy(noop, handler);

@@ -1,59 +1,54 @@
-// Interactions Core
+// Import correct configuration file
+const sentry = require('./utils/instrument');
 let config;
-if (process.env.DEV === 'true') {
-  config = require('../config.dev');
-} else {
+if (process.env.PROD === 'true') {
   config = require('../config');
+} else {
+  config = require('../config.dev');
 }
 
+// Import required modules
 const app = require('express')();
 const cors = require('cors');
-const nacl = require('tweetnacl');
 const bodyParser = require('body-parser');
-const Redis = require('ioredis');
-const sentry = require('@sentry/node');
-const Metrics = require('./framework/Metrics');
+const Sentry = require('@sentry/node');
 
 const Dispatch = require('./framework/Dispatch');
+const Database = require('./framework/Database');
+const Redis = require('ioredis');
+const TimedActions = require('./modules/TimedActions');
+const Levelling = require('./modules/Levelling');
 const RequestHandler = require('./rest/RequestHandler');
-const DatabaseHandler = require('./framework/Database');
-const TimedActions = require('./framework/TimedActions');
+const { User } = require('./structures/discord');
 
-const User = require('./structures/discord/User');
-const { InteractionResponseType, InteractionType } = require('./constants/Types');
-
+// Core interactions class
 module.exports = class Interactions {
 
-  constructor(id, worker, logger) {
-    // Init Sentry
-    if (config.sentry) {
-      sentry.init({
-        dsn: config.sentry
-      });
-    }
-
+  constructor(logger) {
     this.config = config;
-    this.gatewayClient = worker;
     this.logger = logger;
-    this.config = config;
-    this.id = id;
     this.app = app;
     this.startedAt = Date.now();
-    this.metrics = new Metrics(config.metrics);
+    this.isBeta = process.env.PROD !== 'true';
 
     this.redis = new Redis(config.redis);
 
+    // Handlers
     this.dispatch = new Dispatch(this, logger);
     this.rest = new RequestHandler(logger, { token: config.token, apiURL: config.proxyURL });
-    this.database = new DatabaseHandler(config.db);
+    this.database = new Database(config.db);
     this.timedActions = new TimedActions(this);
-
-    this.start();
+    this.levelling = new Levelling(this);
   }
 
-  async start() {
-    this.logger.info(`Assigned interactions id ${this.id}, starting!`, { src: 'core' });
+  // Start the interactions service
+  async start () {
+    this.logger.info('starting up', { src: 'core.start' });
     await this.database.connect();
+
+    if (sentry) {
+      Sentry.setupExpressErrorHandler(this.app);
+    }
 
     // Get current user
     this.user = new User(await this.rest.api.users(this.config.applicationID).get());
@@ -63,66 +58,12 @@ module.exports = class Interactions {
     this.app.use(bodyParser.json());
     this.app.use(cors());
 
-    this.registerRoutes();
+    this.dispatch.registerRoutes();
     this.dispatch.commandStore.updateCommandList();
     this.timedActions.start();
+    this.logger.info('ready', { port: this.config.port, src: 'core.start' });
 
-    this.logger.info(`Server listening on port: ${this.config.port}`, { src: 'core' });
-    this.gatewayClient.sendReady();
-  }
-
-  /**
-   * Register the routes.
-   */
-  async registerRoutes() {
-    this.app.post('/', this.verifySignature, async (req, res) => {
-      if (req.body.type === InteractionType.Ping) {
-        res.status(200).json({ type: InteractionResponseType.Pong });
-        return;
-      }
-
-      const cb = (data) => res.json(data);
-
-      const result = await this.dispatch.handleInteraction(req.body, cb);
-      if (result && result.replied) {
-        cb();
-        return;
-      } else if (result && result.type) {
-        cb(result);
-        return;
-      } else {
-        setTimeout(() => cb(), 2500);
-        return;
-      }
-    });
-  }
-
-  /**
-   * Verify the signature
-   * @param req {object}
-   * @param res {object}
-   * @param next {function}
-   * @returns {boolean}
-   */
-  verifySignature(req, res, next) {
-    const signature = req.header('X-Signature-Ed25519');
-    const timestamp = req.header('X-Signature-Timestamp');
-
-    if (!signature || !timestamp) {
-      return res.status(401).json({ error: 'Unauthorised' });
-    }
-
-    const sig = nacl.sign.detached.verify(
-      Buffer.from(timestamp + JSON.stringify(req.body)),
-      Buffer.from(signature, 'hex'),
-      Buffer.from(config.publicKey, 'hex')
-    );
-
-    if (!sig) {
-      return res.status(401).json({ error: 'Unauthorised' });
-    }
-
-    return next();
+    return this.app;
   }
 
 };

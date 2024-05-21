@@ -6,7 +6,8 @@ const {
   ApplicationCommandOptionType,
   ComponentType,
   SubCommandTypes,
-  ComponentButtonStyle
+  ComponentButtonStyle,
+  ApplicationCommandType
 } = require('../constants/Types');
 const {
   InteractionButton,
@@ -15,11 +16,15 @@ const {
   InteractionResponseMessage,
   InteractionSelect,
   InteractionAutocomplete,
+  InteractionModal,
   Context
 } = require('../structures');
 const { PermissionFlags } = require('../constants/Permissions');
-const { captureException } = require('@sentry/node');
+// const { captureException } = require('@sentry/node');
 const CommandStore = require('./CommandStore');
+const Member = require('../structures/discord/Member');
+
+const nacl = require('tweetnacl');
 
 module.exports = class Dispatch {
 
@@ -27,6 +32,50 @@ module.exports = class Dispatch {
     this.logger = logger;
     this.core = core;
     this.commandStore = new CommandStore(core);
+  }
+
+  async registerRoutes() {
+    this.core.app.post('/', this.verifySignature.bind(this), async (req, res) => {
+      if (req.body.type === InteractionType.Ping) {
+        res.status(200).json({ type: InteractionResponseType.Pong });
+        return;
+      }
+
+      const cb = (data) => res.json(data);
+
+      const result = await this.handleInteraction(req.body, cb);
+      if (result && result.replied) {
+        cb();
+        return;
+      } else if (result && result.type) {
+        cb(result);
+        return;
+      } else {
+        setTimeout(() => cb(), 2500);
+        return;
+      }
+    });
+  }
+
+  verifySignature(req, res, next) {
+    const signature = req.header('X-Signature-Ed25519');
+    const timestamp = req.header('X-Signature-Timestamp');
+
+    if (!signature || !timestamp) {
+      return res.status(401).json({ error: 'Unauthorised' });
+    }
+
+    const sig = nacl.sign.detached.verify(
+      Buffer.from(timestamp + JSON.stringify(req.body)),
+      Buffer.from(signature, 'hex'),
+      Buffer.from(this.core.config.publicKey, 'hex')
+    );
+
+    if (!sig) {
+      return res.status(401).json({ error: 'Unauthorised' });
+    }
+
+    return next();
   }
 
   async handleInteraction(data, cb) {
@@ -58,6 +107,11 @@ module.exports = class Dispatch {
         return this.handleAutocomplete(new InteractionAutocomplete(data, cb))
           .catch(this.handleError.bind(this));
 
+      case InteractionType.ModalSubmit: {
+        return this.handleModal(new InteractionModal(data, cb))
+          .catch(this.handleError.bind(this));
+      }
+
       default:
         this.logger.warn(`Unknown interaction type "${data.type}" received`, { src: 'dispatch/handleInteraction' });
         return {};
@@ -72,8 +126,8 @@ module.exports = class Dispatch {
       return this.handleCustomCommand(interaction, customCommand);
     }
 
-    const startTimestamp = Date.now();
-    const latency = Date.now() - interaction.createdTimestamp;
+    // const startTimestamp = Date.now();
+    // const latency = Date.now() - interaction.createdTimestamp;
 
     const topLevelCommand = this.commandStore.get(interaction.name);
     const applicationCommand = this.getSubCommand(interaction, topLevelCommand);
@@ -90,6 +144,17 @@ module.exports = class Dispatch {
       });
     }
 
+    if (topLevelCommand.type === ApplicationCommandType.USER && interaction.data.resolved.members) {
+      Object.keys(interaction.data.resolved.members).forEach(id => {
+        const rawMember = interaction.data.resolved.members[id];
+        const member = new Member({
+          user: interaction.data.resolved.users[id],
+          ...rawMember
+        });
+        context.args = member;
+      });
+    }
+
     const missingPerms = context.member.permissions.missing(applicationCommand.permissions);
     if (missingPerms.length) {
       const permissionString = missingPerms.map(p => PermissionFlags[p]).join(', ');
@@ -101,13 +166,25 @@ module.exports = class Dispatch {
       return null;
     }
 
+    let commandName = '';
+    if (topLevelCommand.name === applicationCommand.name) {
+      commandName = applicationCommand.name;
+    } else {
+      commandName = `${topLevelCommand.name}.${applicationCommand.name}`;
+    }
+
     //  Check for a global command
-    const disabled = await this.core.redis.get(`commands:${applicationCommand.name}:disabled`);
+    const disabled = await this.core.redis.get(`commands:${commandName}:disabled`) || await this.core.redis.get(`commands:${topLevelCommand.name}:disabled`);
     if (disabled && disabled !== 'no') {
       context.response
         .setDescription(`This command is disabled.\n**Reason:** ${disabled}`)
         .setSuccess(false)
         .callback();
+      return null;
+    }
+
+    if (applicationCommand.premiumCommand && !context.premiumInfo && !this.core.isBeta) {
+      context.response.premiumOnly();
       return null;
     }
 
@@ -117,17 +194,12 @@ module.exports = class Dispatch {
 
       // Command Metrics
       if (!applicationCommand.isDeveloper) {
-        let commandName = '';
-        if (topLevelCommand.name === applicationCommand.name) {
-          commandName = applicationCommand.name;
-        } else {
-          commandName = `${topLevelCommand.name}.${applicationCommand.name}`;
-        }
-        this.core.metrics.histogram('commandDuration', Date.now() - startTimestamp, { command: commandName });
+        /* this.core.metrics.histogram('commandDuration', Date.now() - startTimestamp, { command: commandName });
         this.core.metrics.histogram('commandLatency', latency, { command: commandName });
-        this.core.metrics.counter('commandRun', { command: commandName });
+        this.core.metrics.counter('commandRun', { command: commandName }); */
         await this.core.redis.set('commands:lastUsedTimestamp', Math.floor(Date.now() / 1000));
         await this.core.redis.set('commands:lastUsed', commandName);
+        await this.core.redis.set(`commands:used:${commandName}:${Date.now()}`, 1, 'EX', 86400);
       }
 
       if (!context.response.interaction.replied) {
@@ -140,9 +212,11 @@ module.exports = class Dispatch {
 
       return null;
     } catch (e) {
-      captureException(e);
-      this.core.logger.error(e, { src: 'dispatch/handleCommand' });
-      this.core.metrics.histogram('commandError', { command: applicationCommand.name });
+      // captureException(e);
+      await this.core.rest.api.channels(this.core.config.errorLog).messages.post({
+        content: `\`\`\`js\n${e.stack}\n\`\`\``
+      });
+      this.core.logger.error(e.stack, { src: 'dispatch.handleCommand' });
       context.response
         .setEphemeral()
         .setSuccess(false)
@@ -202,11 +276,50 @@ module.exports = class Dispatch {
     return { type: InteractionResponseType.ApplicationCommandAutocompleteResult, data: { choices: result } };
   }
 
+  async handleModal (interaction) {
+    const context = new Context(this.core, null, interaction);
+
+    let metadata;
+    const [type, ...params] = interaction.customID.split(':');
+    if (type === 'command' || type === 'public') {
+      const [command, subCommand] = params.splice(0, 1)[0].split('.');
+      metadata = {
+        type: 'command',
+        command,
+        subCommand
+      };
+    }
+
+    if (!metadata) return null;
+
+    try {
+      switch (metadata.type) {
+        case 'command': {
+          let command = this.core.dispatch.commandStore.get(metadata.command);
+          if (metadata.subCommand) {
+            command = command.options.find(option => option.name === metadata.subCommand);
+          }
+
+          if (command?.onModalSubmit) {
+            await command.onModalSubmit(context, metadata, params);
+          }
+          break;
+        }
+      }
+    } catch (error) {
+      // await this._onError(error, context);
+      console.log(error);
+    }
+
+    return null;
+  }
+
   async handleCustomCommand (interaction, customCommand) {
     let parsedMessage = customCommand.message.replace(/{user}/g, interaction.user.globalName)
       .replace(/{userid}/g, interaction.user.id)
       .replace(/{serverid}/g, interaction.guildID)
-      .replace(/{channelid}/g, interaction.channelID);
+      .replace(/{channelid}/g, interaction.channelID)
+      .replace(/{args}/g, (interaction.options || [])[0] ? interaction.options[0].value : '');
 
     const rolesToAdd = parsedMessage.match(/{addrole:(\d+)}/g);
     rolesToAdd?.forEach((role) => {
@@ -226,11 +339,21 @@ module.exports = class Dispatch {
       parsedMessage = parsedMessage.replace(role, '');
     });
 
-    const choose = parsedMessage.match(/{choose:(.*)}/g);
+    const choose = parsedMessage.match(/{choose:(.*)}/g) || [];
     choose.forEach((replacing) => {
       let options = replacing.replace('{choose:', '').replace('}', '').split('|');
       let chose = options[Math.floor(Math.random() * options.length)];
       parsedMessage = parsedMessage.replace(replacing, chose);
+    });
+
+    const mathAdd = parsedMessage.match(/{add:(.*)}/g) || [];
+    mathAdd.forEach((replacing) => {
+      let [one, two] = replacing.replace('{add:', '').replace('}', '').split('+');
+      let msg = '';
+      if (parseInt(one) && parseInt(two)) {
+        msg = parseInt(one) + parseInt(two);
+      }
+      parsedMessage = parsedMessage.replace(replacing, msg);
     });
 
     return new InteractionResponseMessage()
@@ -266,7 +389,7 @@ module.exports = class Dispatch {
    * @returns {InteractionResponse}
    */
   handleError(error) {
-    captureException(error);
+    // captureException(error);
     this.logger.error(error.stack, { src: 'dispatch/handleError' });
     return new InteractionResponse()
       .setContent('An unexpected error occurred executing this interaction.')

@@ -11,8 +11,12 @@ module.exports = {
   ComponentType: {
     ActionRow: 1,
     Button: 2,
-    SelectMenu: 3,
-    TextInput: 4
+    StringSelectMenu: 3,
+    TextInput: 4,
+    UserSelect: 5,
+    RoleSelect: 6,
+    MentionableSelect: 7,
+    ChannelSelect: 8
   },
 
   ComponentButtonStyle: {
@@ -37,7 +41,9 @@ module.exports = {
     /** COMPONENTS ONLY */
     UpdateMessage: 7,
     ApplicationCommandAutocompleteResult: 8,
-    Modal: 9
+    Modal: 9,
+    /** PREMIUM ONLY */
+    PremiumRequired: 10
   },
 
   MessageFlags: {
@@ -109,6 +115,10 @@ module.exports = {
     Profanity: 1,
     SexualContent: 2,
     Slurs: 3
+  },
+
+  Entitlements: {
+    ApplicationSubscription: 8
   }
 
 };

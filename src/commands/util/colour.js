@@ -17,11 +17,11 @@ module.exports = class extends Command {
   async run({ response, args: { hex } }) {
     const { body: info } = await superagent.get(`https://api.alexflipnote.dev/colour/${hex.value}`);
     return response
-      .setTitle(`Colour: ${info.name}`)
       .setColour(info.int)
       .setThumbnail(info.images.square)
       .setImage(info.images.gradient)
       .setDescription([
+        `### ${info.name}`,
         `**Hex Code:** ${info.hex.string}`,
         `**RGB:** ${info.rgb.string}`,
         `**HSL:** ${info.hsl.string}`

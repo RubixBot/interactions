@@ -4,6 +4,7 @@ const HTTPError = require('./HTTPError');
 const DiscordAPIError = require('./DiscordAPIError');
 const Bucket = require('./Bucket');
 const routeBuilder = require('./routeBuilder');
+const MultipartData = require('./MultipartData');
 
 module.exports = class RESTHandler {
 
@@ -41,7 +42,8 @@ module.exports = class RESTHandler {
    * @param _attempts {number?}
    * @param immediate {boolean?}
    */
-  request (method, endpoint, data = {}, query = {}, _attempts = 0, immediate = false) {
+  request (method, endpoint, body = {}, query = {}, file = null, _attempts = 0, immediate = false) {
+    // Rate limiting
     const route = this.getRoute(method, endpoint);
     if (!this.ratelimits[route]) {
       this.ratelimits[route] = new Bucket();
@@ -49,31 +51,60 @@ module.exports = class RESTHandler {
 
     return new Promise((resolve, reject) => {
       const fn = (callback) => {
+        // Request Options
         const options = {
           validateStatus: null,
           headers: {
             Authorization: `Bot ${this.token}`,
-            'Content-Type': 'application/json',
-            Accept: 'application/json'
+            Accept: 'application/json',
+            'Accept-Encoding': 'gzip,deflate',
+            'Content-Type': 'application/json'
           },
           baseURL: this.baseURL,
           url: endpoint,
           method: method,
-          data: ['put', 'patch', 'post'].includes(method) ? data : undefined,
           params: query
         };
 
-        if (data && data.auditLogReason) { // Audit log reason sniping
-          let unencodedReason = data.auditLogReason;
+        let data;
+        if (body && body.files) delete body.files;
+
+        // Audit log reasons
+        if (body && body.auditLogReason) {
+          let unencodedReason = body.auditLogReason;
           options.headers['X-Audit-Log-Reason'] = encodeURIComponent(unencodedReason);
           if((method !== 'PUT' || !endpoint.includes('/bans')) && (method !== 'POST' || !endpoint.includes('/prune'))) {
-            delete data.auditLogReason;
+            delete body.auditLogReason;
           } else {
-            data.auditLogReason = unencodedReason;
+            body.auditLogReason = unencodedReason;
           }
         }
 
-        this.logger.debug(`${method.toUpperCase()} ${endpoint}`, { src: 'requestHandler' });
+        // File & data sorting
+        if (file) {
+          if (Array.isArray(file) || file?.file) {
+            data = new MultipartData();
+            options.headers['Content-Type'] = `multipart/form-data; boundary=${data.boundary}`;
+            if (Array.isArray(file)) {
+              for (const f of file) {
+                data.attach(f.name, f.file, f.name);
+              }
+            } else {
+              data.attach(file.name, file.file, file.name);
+            }
+            if (body) data.attach('payload_json', JSON.stringify(body));
+            data = data.finish();
+          } else {
+            throw new Error('Invalid file object');
+          }
+        } else if (body) {
+          if (method !== 'get' && method !== 'delete') {
+            data = body;
+            options.headers['Content-Type'] = 'application/json';
+          }
+        }
+
+        options.data = data;
 
         axios.request(options)
           .then(res => {
@@ -85,7 +116,7 @@ module.exports = class RESTHandler {
 
             //  Reject with an APIError or HTTPError
             const rejectWithError = () => {
-              this.logger.error(`Request failed! ${new DiscordAPIError(res).message}`, { src: 'requestHandler/rejectWithError', endpoint });
+              this.logger.error(`Request failed! ${new DiscordAPIError(res)}`, { src: 'requestHandler/rejectWithError', endpoint });
               if (res.data && res.data.errors) {
                 reject(new DiscordAPIError(res));
               } else {

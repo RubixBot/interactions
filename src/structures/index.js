@@ -9,5 +9,6 @@ module.exports = {
   InteractionEmbedResponse: require('./response/InteractionEmbedResponse'),
   InteractionComponentResponse: require('./response/InteractionComponentResponse'),
   InteractionSelect: require('./interactions/InteractionSelect'),
-  InteractionAutocomplete: require('./interactions/InteractionAutocomplete')
+  InteractionAutocomplete: require('./interactions/InteractionAutocomplete'),
+  InteractionModal: require('./interactions/InteractionModal')
 };

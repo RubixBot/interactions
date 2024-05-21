@@ -1,7 +1,9 @@
+// Required imports
 const fs = require('fs');
 const path = require('path');
 const Types = require('../constants/Types');
 
+// Command storage
 module.exports = class CommandStore extends Map {
 
   constructor (core) {
@@ -18,10 +20,27 @@ module.exports = class CommandStore extends Map {
     this.categories = fs.readdirSync(path.resolve('src', 'commands'))
       .filter(category => !category.startsWith('_'));
 
+    this.userCommands = fs.readdirSync(path.resolve('src', 'userCommands'))
+      .filter(file => !file.startsWith('_'));
+
+    this.messageCommands = fs.readdirSync(path.resolve('src', 'messageCommands'))
+      .filter(file => !file.startsWith('_'));
+
     for (let category of this.categories) {
       this.registerCategory(category);
     }
 
+    for (let userCommand of this.userCommands) {
+      const Command = require(path.resolve('src', 'userCommands', userCommand));
+      const command = new Command(this.core);
+      this.set(command.name, command);
+    }
+
+    for (let messageCommand of this.messageCommands) {
+      const Command = require(path.resolve('src', 'messageCommands', messageCommand));
+      const command = new Command(this.core);
+      this.set(command.name, command);
+    }
   }
 
   registerCategory (category) {
@@ -65,7 +84,7 @@ module.exports = class CommandStore extends Map {
     }
   }
 
-  registerSubCommandGroup(command, dir) {
+  registerSubCommandGroup (command, dir) {
     const Command = require(dir);
     const subCommandGroup = new Command(this.core, {
       name: command.name,
@@ -78,11 +97,10 @@ module.exports = class CommandStore extends Map {
   }
 
   /**
-   * Update the global commands
-   * @returns {Promise<*>}
+   * Updates the global command list.
    */
-  async updateCommandList() {
-    // dev commands
+  async updateCommandList () {
+    // Specifically manager commands
     await this.core.rest.api.applications(this.core.config.applicationID)
       .guilds(this.core.config.devServerID)
       .commands()
@@ -90,7 +108,7 @@ module.exports = class CommandStore extends Map {
         .filter(c => c.isDeveloper)
         .map(v => v.toJSON())
       );
-    // normal command
+    // All global commands
     return await this.core.rest.api.applications(this.core.config.applicationID)
       .commands()
       .put([...this.values()]

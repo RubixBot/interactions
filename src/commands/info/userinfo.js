@@ -2,6 +2,7 @@ const { ApplicationCommandOptionType } = require('../../constants/Types');
 const Command = require('../../framework/Command');
 const User = require('../../structures/discord/User');
 const moment = require('moment');
+require('moment-duration-format');
 
 module.exports = class extends Command {
 
@@ -23,10 +24,14 @@ module.exports = class extends Command {
       .setColour('blue')
       .setAuthor(`${user.globalName}${user.bot ? ' [BOT]' : ''}`, user.avatarURL)
       .setThumbnail(user.avatarURL)
-      .addField('ID', user.id, true)
-      .addField('Joined Discord', `${moment(user.createdAt).format('Do MMMM YYYY')}\n${moment(user.createdAt).fromNow()}`, true)
-      .addField('Joined Server', `${moment(member.joinedAt).format('Do MMMM YYYY')}\n${moment(member.joinedAt).fromNow()}`, true)
-      .addField(`${member.roles.length} roles`, member.roles.map(r => `<@&${r}>`).join(' '));
+      .setDescription([
+        '### User Information',
+        `**ID:** ${user.id}`,
+        `**Joined Discord:** ${moment(user.createdAt).format('Do MMMM YYYY')} (${moment(user.createdAt).fromNow()})`,
+        `**Joined this Server:** ${moment(member.joinedAt).format('Do MMMM YYYY')} (${moment(member.joinedAt).fromNow()})`,
+        `### Roles (${member.roles.length})`,
+        member.roles.map(r => `<@&${r}>`).join(' ')
+      ].join('\n'));
 
     if (user.bannerURL !== '') {
       resp.setImage(user.bannerURL);

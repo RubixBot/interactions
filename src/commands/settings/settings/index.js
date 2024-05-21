@@ -5,7 +5,9 @@ module.exports = class extends Command {
   constructor (...args) {
     super(...args, {
       name: 'settings',
-      description: 'Setting Management'
+      description: 'Server Settings',
+      options: [],
+      permissions: ['manageGuild']
     });
   }
 

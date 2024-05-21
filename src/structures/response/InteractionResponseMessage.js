@@ -179,6 +179,14 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
     return this;
   }
 
+  addFile(name, buffer) {
+    this.files = [{
+      id: Date.now(),
+      name: 'level-card.png',
+      file: buffer
+    }];
+    return this;
+  }
 
   toJSON() {
     const result = {
@@ -189,6 +197,7 @@ module.exports = class InteractionResponseMessage extends InteractionComponentRe
     if (this.data.flags) result.data.flags = this.data.flags;
     if (this.data.components?.length) result.data.components = this.data.components;
     if (this.data.components === 'NULL') result.data.components = [];
+    if (this.files) result.files = this.files;
 
     if (this.data.content !== null) {
       if (this.data.content && !this.data.embeds?.[0]?.description) {
