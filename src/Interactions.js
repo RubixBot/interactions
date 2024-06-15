@@ -23,7 +23,7 @@ class Interactions {
     this.logger = logger;
     this.app = express();
     this.startedAt = Date.now();
-    this.isBeta = !!process.env.PROD;
+    this.isBeta = !process.env.PROD;
     this.redis = new Redis(config.redis);
 
     // Initialize various components
