@@ -94,6 +94,17 @@ module.exports = {
 
   SubCommandTypes: [1, 2],
 
+  InteractionContext: {
+    Guild: 0,
+    BotDM: 1,
+    PrivateChannel: 2
+  },
+
+  IntegrationType: {
+    GuildInstall: 0,
+    UserInstall: 1
+  },
+
   AutomodEventType: {
     MessageSend: 1
   },

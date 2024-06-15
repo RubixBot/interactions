@@ -1,4 +1,4 @@
-const { ApplicationCommandType, ComponentButtonStyle } = require('../constants/Types');
+const { ApplicationCommandType, ComponentButtonStyle, InteractionContext, IntegrationType } = require('../constants/Types');
 
 class Command {
 
@@ -11,6 +11,8 @@ class Command {
     this.options = options.options || [];
     this.choices = options.choices || [];
     this.permissions = options.permissions || [];
+    this.contexts = options.contexts || [InteractionContext.Guild];
+    this.integrationTypes = options.integrationTypes || [IntegrationType.GuildInstall];
     this.premiumCommand = options.premiumCommand || false;
   }
 
@@ -48,6 +50,8 @@ class Command {
       description: this.description,
       options: this.options.map(o => o.toJSON ? o.toJSON() : o),
       choices: this.choices,
+      integration_types: this.integrationTypes,
+      contexts: this.contexts,
       isDeveloper: this.isDeveloper
     };
   }
