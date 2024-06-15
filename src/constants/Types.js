@@ -97,12 +97,14 @@ module.exports = {
   InteractionContext: {
     Guild: 0,
     BotDM: 1,
-    PrivateChannel: 2
+    PrivateChannel: 2,
+    All: [0, 1, 2]
   },
 
   IntegrationType: {
     GuildInstall: 0,
-    UserInstall: 1
+    UserInstall: 1,
+    All: [0, 1]
   },
 
   AutomodEventType: {

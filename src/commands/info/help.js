@@ -1,3 +1,4 @@
+const { InteractionContext, IntegrationType } = require('../../constants/Types');
 const Command = require('../../framework/Command');
 
 module.exports = class extends Command {
@@ -5,7 +6,9 @@ module.exports = class extends Command {
   constructor (...args) {
     super(...args, {
       name: 'help',
-      description: 'View various information about how to use the bot.'
+      description: 'View various information about how to use the bot.',
+      contexts: InteractionContext.All,
+      integrationTypes: IntegrationType.All
     });
   }
 
