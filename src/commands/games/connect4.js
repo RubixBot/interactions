@@ -63,6 +63,10 @@ module.exports = class extends Command {
       case 'number': {
         ctx.response.update();
         const state = await Game.getState(ctx.redis, player1);
+        if (!state) {
+          return ctx.response.setContent('Game state not found, it may have expired.\nIf the issue persists, please contact our support server.')
+            .setSuccess(false);
+        }
         Game.addPiece(ctx, state, number - 1, state.nextPlayer);
         break;
       }

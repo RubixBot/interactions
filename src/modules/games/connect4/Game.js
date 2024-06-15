@@ -165,6 +165,8 @@ module.exports = class Game {
   // Get a game state from redis
   static async getState(redis, id) {
     const game = await this.getGame(redis, id);
+    if (!game) return null;
+
     return {
       grid: game.grid,
       inserts: game.inserts,
