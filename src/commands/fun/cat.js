@@ -11,11 +11,11 @@ module.exports = class extends Command {
   }
 
   async run ({ response }) {
-    const { body: [url] } = await superagent.get('http://shibe.online/api/cats?count=1');
+    const { body: { file } } = await superagent.get('https://api.alexflipnote.dev/cats');
     return response
       .setColour('blue')
-      .setImage(url)
-      .setFooter('Powered by shibe.online');
+      .setImage(file)
+      .setFooter('Powered by alexflipnote.dev');
   }
 
 };
