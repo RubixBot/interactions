@@ -20,7 +20,7 @@ module.exports = class extends Command {
     const commandsUsed = (await redis.keys('commands:used:*')).length;
     const lastUsed = await redis.get('commands:lastUsedTimestamp');
 
-    response.setDescription([
+    return response.setDescription([
       '### General',
       `- Approximate Servers: ${approximate_guild_count.toLocaleString()}`,
       `- Memory Usage: ${this.convertBytes(process.memoryUsage().rss)}`,

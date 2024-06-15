@@ -1,6 +1,6 @@
 // Command Context
 
-const { Entitlements } = require('../constants/Types');
+const config = process.env.PROD ? require('../../config.json') : require('../../config.dev');
 const InteractionResponseMessage = require('../structures/response/InteractionResponseMessage');
 
 module.exports = class Context {
@@ -22,7 +22,7 @@ module.exports = class Context {
   }
 
   get premiumInfo () {
-    return this.interaction.entitlements.filter(entitlement => entitlement.type === Entitlements.ApplicationSubscription)[0];
+    return this.interaction.entitlements.filter(entitlement => entitlement.sku_id === config.premiumSKU.guildPremium)[0];
   }
 
   get token () {

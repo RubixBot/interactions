@@ -1,4 +1,4 @@
-// Import correct configuration file
+// Import necessary modules and configurations
 const sentry = require('./utils/instrument');
 const express = require('express');
 const cors = require('cors');
@@ -13,6 +13,7 @@ const Levelling = require('./modules/Levelling');
 const RequestHandler = require('./rest/RequestHandler');
 const { User } = require('./structures/discord');
 
+// Load the appropriate configuration file based on the environment
 const config = process.env.PROD ? require('../config.json') : require('../config.dev');
 
 class Interactions {
@@ -23,10 +24,9 @@ class Interactions {
     this.app = express();
     this.startedAt = Date.now();
     this.isBeta = !!process.env.PROD;
-
     this.redis = new Redis(config.redis);
 
-    // Handlers
+    // Initialize various components
     this.dispatch = new Dispatch(this, logger);
     this.rest = new RequestHandler(logger, { token: config.token, apiURL: config.proxyURL });
     this.database = new Database(config.db);
@@ -34,31 +34,37 @@ class Interactions {
     this.levelling = new Levelling(this);
   }
 
-  // Start the interactions service
-  async start () {
+  /**
+   * Start the interactions service
+   */
+  async start() {
     this.logger.info('starting up', { src: 'core.start', prod: process.env.PROD });
+
+    // Connect to the database
     await this.database.connect();
 
+    // Setup Sentry error handling if Sentry is configured
     if (sentry) {
       Sentry.setupExpressErrorHandler(this.app);
     }
 
-    // Get current user
+    // Retrieve current user information
     this.user = new User(await this.rest.api.users(this.config.applicationID).get());
 
-    // Initialise the server
+    // Initialize and configure the server
     this.app.listen(this.config.port);
     this.app.use(bodyParser.json());
     this.app.use(cors());
 
+    // Register routes and start necessary services
     this.dispatch.registerRoutes();
     this.dispatch.commandStore.updateCommandList();
     this.timedActions.start();
+
     this.logger.info('ready', { port: this.config.port, src: 'core.start' });
 
     return this.app;
   }
-
 }
 
 module.exports = Interactions;

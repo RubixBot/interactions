@@ -1,4 +1,4 @@
-const { ApplicationCommandType } = require('../constants/Types');
+const { ApplicationCommandType, ComponentButtonStyle } = require('../constants/Types');
 
 class Command {
 
@@ -16,6 +16,29 @@ class Command {
 
   get core () {
     return this._core;
+  }
+
+  async createPaginationMenu (ctx, pages, pageNumber = 0) {
+    const id = Date.now();
+
+    await this.core.redis.set(`pagination:${id}`, JSON.stringify({
+      pages,
+      pageNumber
+    }));
+
+    ctx.response.setDescription(pages[pageNumber])
+      .addButton({
+        custom_id: `pagination:${id}:back`,
+        label: 'Previous page',
+        style: ComponentButtonStyle.Grey,
+        disabled: pageNumber === 1
+      })
+      .addButton({
+        custom_id: `pagination:${id}:next`,
+        label: 'Next page',
+        style: ComponentButtonStyle.Grey,
+        disabled: pageNumber < pages.length
+      });
   }
 
   toJSON() {

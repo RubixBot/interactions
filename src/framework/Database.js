@@ -102,6 +102,14 @@ module.exports = class Database {
   }
 
   /* Experience Handler */
+  async isLevellingEnabled (guild_id) {
+    const set = await this.db.collection('guilds').findOne({ _id: guild_id });
+    if (set && set.levelling_enabled) {
+      return true;
+    } else {
+      return false;
+    }
+  }
   getUserXP (guild_id, user_id) {
     return this.db.collection('levels').findOne({ guild_id, user_id });
   }
@@ -111,7 +119,7 @@ module.exports = class Database {
   }
 
   getGuildLeaderboard (guild_id) {
-    return this.db.collection('levels').find({ guild_id }, { $sort: { experience: 1 } }).toArray();
+    return this.db.collection('levels').find({ guild_id }, { sort: { experience: 1 } }).toArray();
   }
 
   async getRankPosition (guild_id, user_id) {

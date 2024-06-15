@@ -16,7 +16,13 @@ module.exports = class extends Command {
     });
   }
 
-  async run ({ response, args, user, db, guildID }) {
+  async run({ response, args, user, db, guildID }) {
+    const isLevellingEnabled = await db.isLevellingEnabled(guildID);
+    if (!isLevellingEnabled) {
+      return response.setContent('Levelling is not enabled in this server.\nTo enable it, use `/exp enable`.')
+        .setSuccess(false);
+    }
+
     await response.defer();
     const member = args.member ? args.member.user : user;
     const rankStats = await db.getUserXP(guildID, member.id);

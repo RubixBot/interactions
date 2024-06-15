@@ -4,8 +4,17 @@ const { ComponentType } = require('../constants/Types');
 
 module.exports = class GiveawayModule {
 
-  static async create (core, channel, item, winners, duration) {
-    // Create a random ID
+  /**
+   * Create a new giveaway
+   * @param {Object} core - Core application instance
+   * @param {Object} channel - Channel where the giveaway will be posted
+   * @param {string} item - Item being given away
+   * @param {number} winners - Number of winners
+   * @param {number} duration - Duration of the giveaway in milliseconds
+   * @returns {boolean} - Returns true if the giveaway is created successfully
+   */
+  static async create(core, channel, item, winners, duration) {
+    // Generate a random ID based on the current timestamp
     const randomID = Date.now();
 
     // Create the giveaway message
@@ -28,7 +37,7 @@ module.exports = class GiveawayModule {
       throw new Error(`I could not create a message in <#${channel.id}>.`);
     }
 
-    // Create a timed action to end the giveaway
+    // Schedule a timed action to end the giveaway
     await core.database.createTimedAction('giveaway', Date.now() + duration, {
       id: randomID,
       channelID: channel.id,
@@ -38,7 +47,7 @@ module.exports = class GiveawayModule {
       entrees: []
     });
 
-    // Save giveaway data
+    // Save giveaway metadata in Redis
     await core.redis.set(`components:${randomID}:meta`, JSON.stringify({
       type: 'giveaway',
       giveawayID: randomID
@@ -47,10 +56,15 @@ module.exports = class GiveawayModule {
     return true;
   }
 
-
-  // Join a giveaway
-  static async joinGiveaway (core, member, timedAction) {
-    // Check if the member is in the giveaway
+  /**
+   * Join or leave a giveaway
+   * @param {Object} core - Core application instance
+   * @param {Object} member - Member joining the giveaway
+   * @param {Object} timedAction - Timed action representing the giveaway
+   * @returns {boolean} - Returns true if the member joins the giveaway, otherwise throws an error
+   */
+  static async joinGiveaway(core, member, timedAction) {
+    // Check if the member is already in the giveaway
     if (timedAction.entrees.includes(member.id)) {
       // Remove the member from the giveaway
       timedAction.entrees = timedAction.entrees.filter(e => e !== member.id);
